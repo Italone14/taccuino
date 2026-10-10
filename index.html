@@ -822,7 +822,7 @@ html.dark body:not(.light) .ico.phi svg.ph{fill:color-mix(in srgb,var(--ic) 75%,
 /* note: niente zoom di iOS e via il tastierino numerico mentre scrivi */
 .txe .xinner textarea,.txe .xinner input,#set .xinner input,#set .xinner textarea,#view input{font-size:17.8px!important}
 .sheet input{font-size:17.8px!important}
-.txe.typing .keypad{visibility:hidden!important}
+.txe.typing .keypad{display:none!important}.txe.typing .xinner{padding-bottom:45vh!important}
 .h-saldo b.pos-saldo,.nw .big.pos-saldo{color:#16a05a!important}
 html.dark body:not(.light) .h-saldo b.pos-saldo,html.dark body:not(.light) .nw .big.pos-saldo{color:#3ccf7f!important}
 /* accesso */
@@ -1900,7 +1900,9 @@ function drawTxe() {
   $('xMic').onclick = () => startDictation();
   $('xAi').onfocus = () => $('txe').classList.add('typing');
   $('xAi').onblur = () => setTimeout(() => { const t = $('txe'); if (t && document.activeElement !== $('xNote')) t.classList.remove('typing'); }, 80);
-  $('xNote').onfocus = () => { const t = $('txe'), top = t.scrollTop; t.classList.add('typing'); const keep = () => { t.scrollTop = top; window.scrollTo(0, 0); }; [0, 60, 200, 400].forEach(ms => setTimeout(keep, ms)); if (window.visualViewport) { const vv = () => keep(); visualViewport.addEventListener('resize', vv); visualViewport.addEventListener('scroll', vv); $('xNote').addEventListener('blur', () => { visualViewport.removeEventListener('resize', vv); visualViewport.removeEventListener('scroll', vv); }, { once: true }); } };
+  $('xNote').onfocus = () => { const t = $('txe'), n = $('xNote'); t.classList.add('typing'); const top0 = parseFloat(getComputedStyle(t).top) || 36;
+    const fit = () => { const vv = window.visualViewport; if (!vv) return; const g = Math.min(top0, 12); t.style.top = (vv.offsetTop + g) + 'px'; t.style.height = Math.max(200, vv.height - g) + 'px'; t.style.bottom = 'auto'; const r = n.getBoundingClientRect(), tr = t.getBoundingClientRect(); if (r.bottom > tr.bottom - 12 || r.top < tr.top + 12) t.scrollTop += r.top - tr.top - tr.height / 2 + r.height / 2; };
+    [50, 200, 400, 700].forEach(ms => setTimeout(fit, ms)); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); n.addEventListener('blur', () => { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); t.style.top = t.style.height = t.style.bottom = ''; }, { once: true }); } };
   $('xNote').onblur = () => setTimeout(() => { const t = $('txe'); if (t) t.classList.remove('typing'); }, 80);
   $('xClose').onclick = closeTxe;
   $('xOk').onclick = saveTx;
@@ -2208,7 +2210,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.8';
+const APP_VER = '2026-10-10.9';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
