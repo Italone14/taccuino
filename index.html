@@ -1867,6 +1867,8 @@ function drawSettings() {
       <p class="status" style="text-align:left;margin-top:8px">"Precedente" torna esattamente com'era prima delle ultime modifiche estetiche. Resta salvato anche quando riapri l'app.</p>
       <div class="fsec" style="margin-top:22px">Account</div>
       <div class="kv"><span>Accesso con</span><b>${esc(FBUSER ? FBUSER.email : '—')}</b></div>
+      <label class="btn pri lg-file" style="margin-top:12px;text-align:center">Importa dati da file<input id="sImport" type="file" accept=".json,application/json" hidden></label>
+      <p class="status" style="text-align:left;margin-top:6px">Scegli taccuino-dati.json (o un backup): i documenti con lo stesso nome vengono sostituiti.</p>
       <div class="actions"><button type="button" class="btn sec" id="sExport">Scarica un backup</button><button type="button" class="btn sec" id="sLogout">Esci</button></div>`;
   }
   if (v === 'sync') {
@@ -1928,6 +1930,7 @@ function syncState() {
 function bindSettings() {
   const el = $('set'), v = SET.view;
   $('sBack').onclick = () => { if (v === 'main') closeSettings(); else { SET = { view: v === 'catEdit' ? 'cats' : v === 'accNew' ? 'accs' : 'main' }; drawSettings(); } };
+  if ($('sImport')) $('sImport').onchange = async () => { const f = $('sImport').files[0]; if (!f) return; toast('Importo…'); try { const n = await importData(db, JSON.parse(await f.text())); toast(`Importati ${n} documenti`); } catch (e) { toast(e && e.code === 'permission-denied' ? 'Permesso negato: controlla le regole su Firebase' : 'Import non riuscito: ' + ((e && (e.code || e.message)) || 'errore')); } };
   if ($('sExport')) $('sExport').onclick = () => exportData().then(() => toast('Backup scaricato')).catch(() => toast('Non sono riuscito: riprova'));
   if ($('sLogout')) $('sLogout').onclick = () => { closeSettings(); firebase.auth().signOut().then(() => location.reload()); };
   el.querySelectorAll('[data-bx]').forEach(b => b.onclick = () => { setBx(b.dataset.bx, true); drawSettings(); });
@@ -2020,7 +2023,7 @@ async function maybeImport(d) {
       <div class="err" id="impErr"></div><button type="button" class="linkbtn" id="impSkip">Parti da zero</button></div>`;
     $('impSkip').onclick = () => { el.hidden = true; resolve(); };
     $('impF').onchange = async () => { const f = $('impF').files[0]; if (!f) return; $('impErr').textContent = 'Importo…';
-      try { const n = await importData(d, JSON.parse(await f.text())); el.hidden = true; toast(`Importati ${n} documenti`); resolve(); } catch (e) { $('impErr').textContent = 'File non valido o errore di rete: riprova.'; } };
+      try { const n = await importData(d, JSON.parse(await f.text())); el.hidden = true; toast(`Importati ${n} documenti`); resolve(); } catch (e) { $('impErr').textContent = e && e.code === 'permission-denied' ? 'Permesso negato: su Firebase le regole di sicurezza non sono ancora pubblicate.' : 'Non riuscito: ' + ((e && (e.code || e.message)) || 'errore'); } };
   });
 }
 async function importData(d, obj) {
@@ -2039,7 +2042,7 @@ render();
   db = await fbLogin();
   if (!db) return;
   const done = k => { ready[k] = true; if (ready.h && ready.n && ready.c) { $('status').textContent = ''; genRecurring(); } render(); };
-  const fail = e => { $('status').textContent = e && e.code === 'revoked' ? 'Accesso non disponibile.' : 'Dati non raggiungibili: riapri la pagina.'; };
+  const fail = e => { const m = e && e.code === 'permission-denied' ? 'Permesso negato: pubblica le regole di sicurezza su Firebase (Firestore → Regole).' : 'Dati non raggiungibili: riapri l\'app.'; $('status').textContent = m; toast(m); };
   subscribeAll = () => {
     UNSUB.forEach(u => { try { u(); } catch (e) {} }); UNSUB = [];
     const meta = (k, s) => { SYNC[k] = { at: Date.now(), cache: !!(s.metadata && s.metadata.fromCache), pending: !!(s.metadata && s.metadata.hasPendingWrites) }; SYNC.err = null; if (!$('set').hidden && SET.view === 'sync') drawSettings(); };
