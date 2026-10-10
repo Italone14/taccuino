@@ -1275,8 +1275,8 @@ function viewHome() {
   <div class="h-sum">
     <div class="h-saldo"><span>${P.acc ? 'Saldo ' + esc(P.acc) : 'Saldo'}<button type="button" class="eye" id="eyeBtn" aria-label="${hidePref() ? 'Mostra il saldo' : 'Nascondi il saldo'}">${hidePref() ? EYE_OFF : EYE}</button></span><b class="num ${saldo >= 0 ? 'pos-saldo' : ''}${hidePref() ? ' hid' : ''}" data-count="${saldo}">${money(saldo)}</b></div>
     <div class="h-two">
-      <div class="h-sp"><span>↓ Spese</span><b class="num">${eur(sumBy(sp, e => e.v))}</b></div>
       <div class="h-in"><span>↑ Entrate</span><b class="num">${eur(sumBy(inc, e => e.v))}</b></div>
+      <div class="h-sp"><span>↓ Spese</span><b class="num">${eur(sumBy(sp, e => e.v))}</b></div>
     </div>
   </div>
   ${P.acc ? `<div class="chips" style="justify-content:center;margin-top:14px"><button class="chip x" aria-pressed="true" data-clear="acc">${esc(P.acc)}</button></div>` : ''}
@@ -2210,7 +2210,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.10';
+const APP_VER = '2026-10-10.11';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
