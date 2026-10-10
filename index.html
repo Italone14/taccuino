@@ -925,6 +925,35 @@ html.dark body.light .pg-row{border-bottom-color:rgba(255,255,255,.07)}
 .txe::after{content:none!important;display:none!important}
 .txe .keypad{margin-top:auto!important}
 .pg-row .bbn small{opacity:.75}
+/* salvadanaio a tre colonne */
+.pg3-h,.pg3{display:grid;grid-template-columns:24px minmax(0,1fr) 62px 66px 62px;align-items:center;gap:6px}
+.pg3-h{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#858a82;margin-top:4px}
+.pg3-h span,.pg3>span:not(.bbn):not(.ico),.pg3>b{text-align:right}
+.pg3{width:100%;border:0;background:none;font:inherit;color:inherit;text-align:left;padding:9px 0;border-bottom:1px solid #e9eae4;cursor:pointer}
+.pg3 .ico{width:24px!important;height:24px!important;border-radius:50%!important}
+.pg3 .bbn{font-size:13.5px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg3>span{font-size:12.5px;color:#4c524f;font-variant-numeric:tabular-nums}
+.pg3>b{font-size:14px;font-variant-numeric:tabular-nums}
+.pg3 .neg{color:#c2412f!important}
+.pg3-tot{cursor:default;font-weight:700;border-bottom:0;border-top:1.5px solid #15191c}
+html.dark body.light .pg3{border-bottom-color:rgba(255,255,255,.07)}
+html.dark body.light .pg3>span{color:#b8bcc4}
+html.dark body.light .pg3 .neg{color:#ff7a66!important}
+html.dark body.light .pg3-tot{border-top-color:#f1f1ef}
+/* dettaglio voce */
+.vd-h{display:flex;align-items:center;gap:12px;margin-bottom:12px}.vd-h .ico{width:42px;height:42px}
+.vd-h h2{margin:0;font-size:20px}.vd-h small{color:var(--muted)}
+.vd-chips{display:flex;flex-wrap:wrap;gap:6px}
+.vd-chips span{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;background:var(--bg-2);font-size:13.5px}
+.vd-chips .ico{width:22px!important;height:22px!important}
+.vd-tbl{max-height:40vh;overflow:auto}
+.vd-tbl div{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:7px 0;border-bottom:1px solid var(--dash);font-size:14px;font-variant-numeric:tabular-nums}
+.vd-tbl div.old{opacity:.6}
+.vd-tbl b{font-size:13px;min-width:120px;text-align:right}.vd-tbl b.neg{color:var(--bad)}.vd-tbl b.pos{color:var(--good)}
+html:not(.dark) body.light .sheet{--ink:#15191c;--ink-2:#4c524f;--muted:#858a82;--bg-2:#efece6;--dash:rgba(22,24,28,.08);color:#15191c;background:#fff}
+html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--ink-2:#b8bcc4;--muted:#8a8f98;--bg-2:#38383c;--dash:rgba(255,255,255,.1);color:#f1f1ef;background:#303034!important}
+.vd-tbl div.old{opacity:1!important}.vd-tbl div.old>span{color:var(--muted)}
+.vd-h h2{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1555,6 +1584,27 @@ function bindBal(v) {
   svg.addEventListener('pointerup', () => { svg.onpointermove = null; }); svg.addEventListener('pointercancel', () => { svg.onpointermove = null; });
 }
 
+/* dettaglio di una voce del salvadanaio */
+function openVoce(k) {
+  const v = VAR().find(x => x.k === k); if (!v) return;
+  const subs = [...v.cats, ...(CONF.cats || []).filter(c => c.type === 's' && c.voce === k).map(c => c.name)];
+  const start = PIGGY_START(), now2 = new Date(), rows = [];
+  for (let i = 0; i < 24; i++) { const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1), key = mk(d.getFullYear(), d.getMonth()); if (key < '2023-12') break; const sp = budgetState(key).spentV[k] || 0; rows.push({ d, key, sp, diff: v.limit - sp, active: key >= start }); }
+  const past = rows.filter(r => r.key < mk(now2.getFullYear(), now2.getMonth()));
+  const avg = past.length ? past.reduce((a, r) => a + r.sp, 0) / past.length : 0, ok = past.filter(r => r.diff >= 0).length;
+  const f = x => `${x < 0 ? '−' : '+'}${eur(Math.abs(x))}`;
+  $('sheet').innerHTML = `<div class="grab"></div><div class="vd-h">${icon(v.cats[0] || 'Vario')}<div><h2>${esc(v.name)}</h2><small>limite ${eur(v.limit)} al mese</small></div></div>
+    <div class="fsec">Categorie che contano qui</div>
+    <div class="vd-chips">${subs.map(c => `<span>${icon(c, true)}${esc(c)}</span>`).join('') || '<span>—</span>'}${v.rule ? `<p class="status" style="text-align:left;margin:6px 0 0">${esc(v.rule)}</p>` : ''}</div>
+    <div class="fsec" style="margin-top:16px">Mese per mese</div>
+    <p class="status" style="text-align:left;margin:0 0 6px">Media ${eur(avg)} al mese · sotto il limite ${ok} mesi su ${past.length}. Prima di ${ML[+start.slice(5) - 1]} ${start.slice(0, 4)} il budget non c'era: il confronto è con il limite di oggi.</p>
+    <div class="vd-tbl">${rows.map(r => `<div class="${r.active ? '' : 'old'}"><span>${ML[r.d.getMonth()].slice(0, 3)} ${r.d.getFullYear()}</span><span>${eur(r.sp)}</span><b class="${r.diff < 0 ? 'neg' : 'pos'}">${r.diff < 0 ? 'sforato ' : 'avanzato '}${eur(Math.abs(r.diff))}</b></div>`).join('')}</div>
+    <div class="actions"><button type="button" class="btn sec" id="vdClose">Chiudi</button><button type="button" class="btn pri" id="vdTx">Vedi le spese</button></div>`;
+  $('sheet').hidden = $('sbg').hidden = false; $('sheet').onsubmit = null;
+  $('vdClose').onclick = closeSheet;
+  $('vdTx').onclick = () => { closeSheet(); txFilter = { q: '', cat: subs[0] || null, type: 's' }; tab = 'tx'; render(); scrollTo(0, 0); };
+}
+
 function viewInsight() {
   const key = curKey(), B = budgetState(key), r = monthRange(cur.y, cur.m, P.startDay || 1);
   const xs = TX().filter(e => inRange(e, r)), inc = sumBy(xs.filter(e => e.t === 'e'), e => e.v), sp = sumBy(xs.filter(isSpend), e => e.v);
@@ -1589,9 +1639,11 @@ function viewInsight() {
     ${before ? `<p class="r-note">Il salvadanaio parte da ${ML[sm - 1]} ${sy}: per i mesi precedenti non c'era ancora un budget.</p>` : `
     <div class="pg-hero"><span>Puoi ancora spendere</span><b class="${totD < 0 ? 'neg' : ''}">${totD < -.005 ? '−' : ''}${eur(Math.abs(totD))}</b>
       <small>budget di ${mName} + salvadanaio − già speso · nel salvadanaio: <b class="${totA < -.005 ? 'neg' : totA > .005 ? 'pos' : ''}">${totA > .005 ? '+' : ''}${totA < -.005 ? '−' : ''}${eur(Math.abs(totA))}</b></small></div>
-    <div class="bb-list">${pgRows.slice().sort((a, b) => b.disp - a.disp).map(r => { const c0 = r.v.cats[0] || 'Vario';
-      return `<div class="pg-row">${icon(c0, true)}<span class="bbn">${esc(r.v.name)}<small>${Math.abs(r.a) > .005 ? `salvadanaio ${r.a > 0 ? '+' : '−'}${eur(Math.abs(r.a))}` : ''}</small></span><b class="${r.disp < 0 ? 'neg' : ''}">${r.disp < -.005 ? '−' : ''}${eur(Math.abs(r.disp))}</b></div>`; }).join('')}</div>
-    <p class="r-note">Quello che non spendi in una voce resta nel suo salvadanaio per i mesi dopo; se sfori, la differenza viene tolta da lì. A destra vedi quanto puoi spendere ancora in ogni voce.</p>
+    <div class="pg3-h"><span></span><span></span><span>Da prima</span><span>Questo mese</span><span>Totale</span></div>
+    <div class="bb-list">${pgRows.slice().sort((a, b) => b.disp - a.disp).map(r => { const c0 = r.v.cats[0] || 'Vario', m = r.v.limit - r.sp2, f = x => `<span class="${x < -.005 ? 'neg' : ''}">${x < -.005 ? '−' : ''}${eur0(Math.abs(x))}</span>`;
+      return `<button type="button" class="pg3" data-pgv="${r.v.k}">${icon(c0, true)}<span class="bbn">${esc(r.v.name)}</span>${f(r.a)}${f(m)}<b class="${r.disp < 0 ? 'neg' : ''}">${r.disp < 0 ? '−' : ''}${eur0(Math.abs(r.disp))}</b></button>`; }).join('')}
+    <div class="pg3 pg3-tot"><span></span><span class="bbn">Totale</span>${(x => `<span class="${x < -.005 ? 'neg' : ''}">${x < -.005 ? '−' : ''}${eur0(Math.abs(x))}</span>`)(totA)}${(x => `<span class="${x < -.005 ? 'neg' : ''}">${x < -.005 ? '−' : ''}${eur0(Math.abs(x))}</span>`)(B.limit - B.spent)}<b class="${totD < 0 ? 'neg' : ''}">${totD < 0 ? '−' : ''}${eur0(Math.abs(totD))}</b></div></div>
+    <p class="r-note">Quello che non spendi in una voce resta nel suo salvadanaio per i mesi dopo; se sfori, la differenza viene tolta da lì. Tocca una voce per vedere le sue categorie e com'è andata mese per mese.</p>
     <button type="button" class="r-link" id="piggyReset">Svuota e riparti da ${mName}</button>`}</section>`;
   // andamento
   const L = last12(), cats = (() => { const g = {}; TX().filter(e => isSpend(e) && e.d >= monthRange(L[0].y, L[0].m, P.startDay || 1).from).forEach(e => g[e.c] = (g[e.c] || 0) + e.v); return Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => x[0]); })();
@@ -1715,6 +1767,7 @@ function bind() {
   v.querySelectorAll('[data-substop]').forEach(b => b.onclick = () => { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tocca di nuovo'; b.classList.add('warn'); return; } subStop(b.dataset.substop); });
   v.querySelectorAll('[data-subon]').forEach(b => b.onclick = () => subOn(b.dataset.subon));
   bindBal(v);
+  v.querySelectorAll('[data-pgv]').forEach(b => b.onclick = () => openVoce(b.dataset.pgv));
   v.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { sTab = b.dataset.stab; render(); scrollTo(0, 0); });
   const eb = $('editBudget'); if (eb) eb.onclick = openBudgetEditor;
   const os = $('openSettings'); if (os) os.onclick = () => openSettings('main');
@@ -2151,7 +2204,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.4';
+const APP_VER = '2026-10-10.5';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
