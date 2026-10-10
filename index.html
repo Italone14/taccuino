@@ -905,6 +905,18 @@ html.dark body.light .bb-tot{border-top-color:#f1f1ef}
 .bbar{height:7px!important;border-radius:4px!important}.bbar i{border-radius:4px!important}
 .bbar em{top:-2px!important;bottom:-2px!important}
 .bb-tot{padding-top:8px!important}
+/* salvadanaio semplice */
+.pg-hero{margin:8px 0 14px}
+.pg-hero span{display:block;font-size:13px;font-weight:600;color:#858a82}
+.pg-hero>b{display:block;font-size:34px;font-weight:700;letter-spacing:-.03em;margin:2px 0 4px;color:#1f7a4d}
+.pg-hero>b.neg{color:#c2412f}
+.pg-hero small{font-size:12.5px;color:#858a82}.pg-hero small b{color:#4c524f}
+.pg-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e9eae4}
+.pg-row .ico{width:24px!important;height:24px!important;flex:none;border-radius:50%!important}
+.pg-row>b{font-size:14px;font-weight:700;white-space:nowrap}.pg-row>b.neg{color:#c2412f}
+html.dark body.light .pg-hero>b{color:#3ccf7f}html.dark body.light .pg-hero>b.neg,html.dark body.light .pg-row>b.neg{color:#ff7a66}
+html.dark body.light .pg-hero small b{color:#d6d8dc}
+html.dark body.light .pg-row{border-bottom-color:rgba(255,255,255,.07)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1567,11 +1579,11 @@ function viewInsight() {
   const totA = pgRows.reduce((x, r) => x + r.a, 0), totD = pgRows.reduce((x, r) => x + r.disp, 0);
   let pS = `<section class="r-card" id="salvadanaio"><div class="r-head"><h2>Salvadanaio</h2><span>da ${ML[sm - 1]} ${sy}${PG.months ? ` · ${PG.months} ${PG.months === 1 ? 'mese' : 'mesi'} chiusi` : ''}</span></div>
     ${before ? `<p class="r-note">Il salvadanaio parte da ${ML[sm - 1]} ${sy}: per i mesi precedenti non c'era ancora un budget.</p>` : `
-    <div class="r-kpis" style="grid-template-columns:1fr 1fr;margin-top:6px"><div><span>Messo da parte</span><b style="color:${totA < 0 ? '#c2412f' : '#1f7a4d'}">${totA < 0 ? '−' : ''}${eur0(Math.abs(totA))}</b><small>avanzato nei mesi chiusi</small></div><div><span>Disponibile ora</span><b style="color:${totD < 0 ? '#c2412f' : 'inherit'}">${totD < 0 ? '−' : ''}${eur0(Math.abs(totD))}</b><small>salvadanaio + budget di ${mName} − speso</small></div></div>
-    <table class="r-tbl"><thead><tr><th>Voce</th><th>Da parte</th><th>Disponibile</th></tr></thead><tbody>
-    ${pgRows.map(r => `<tr><td>${esc(r.v.name)}<small class="r-dim">questo mese ${eur(r.sp2)} di ${eur(r.v.limit)}</small></td><td class="${r.a < -.005 ? 'neg' : r.a > .005 ? 'pos' : ''}">${r.a < -.005 ? '−' : r.a > .005 ? '+' : ''}${eur(Math.abs(r.a))}</td><td class="${r.disp < 0 ? 'neg' : ''}"><b>${r.disp < 0 ? '−' : ''}${eur(Math.abs(r.disp))}</b></td></tr>`).join('')}
-    <tr class="tot"><td>Totale<small class="r-dim">questo mese ${eur(B.spent)} di ${eur(B.limit)}</small></td><td>${totA < 0 ? '−' : ''}${eur(Math.abs(totA))}</td><td>${totD < 0 ? '−' : ''}${eur(Math.abs(totD))}</td></tr></tbody></table>
-    <p class="r-note">Ogni mese quello che non spendi in una voce finisce nel suo salvadanaio e resta disponibile nei mesi dopo. Se sfori, la differenza viene tolta dal salvadanaio di quella voce. Esempio: se per tre mesi non viaggi, il fondo Viaggi cresce di 95 € al mese.</p>
+    <div class="pg-hero"><span>Puoi ancora spendere</span><b class="${totD < 0 ? 'neg' : ''}">${totD < -.005 ? '−' : ''}${eur(Math.abs(totD))}</b>
+      <small>budget di ${mName} + salvadanaio − già speso · nel salvadanaio: <b class="${totA < -.005 ? 'neg' : totA > .005 ? 'pos' : ''}">${totA > .005 ? '+' : ''}${totA < -.005 ? '−' : ''}${eur(Math.abs(totA))}</b></small></div>
+    <div class="bb-list">${pgRows.slice().sort((a, b) => b.disp - a.disp).map(r => { const c0 = r.v.cats[0] || 'Vario';
+      return `<div class="pg-row">${icon(c0, true)}<span class="bbn">${esc(r.v.name)}<small>${Math.abs(r.a) > .005 ? `salvadanaio ${r.a > 0 ? '+' : '−'}${eur(Math.abs(r.a))}` : ''}</small></span><b class="${r.disp < 0 ? 'neg' : ''}">${r.disp < -.005 ? '−' : ''}${eur(Math.abs(r.disp))}</b></div>`; }).join('')}</div>
+    <p class="r-note">Quello che non spendi in una voce resta nel suo salvadanaio per i mesi dopo; se sfori, la differenza viene tolta da lì. A destra vedi quanto puoi spendere ancora in ogni voce.</p>
     <button type="button" class="r-link" id="piggyReset">Svuota e riparti da ${mName}</button>`}</section>`;
   // andamento
   const L = last12(), cats = (() => { const g = {}; TX().filter(e => isSpend(e) && e.d >= monthRange(L[0].y, L[0].m, P.startDay || 1).from).forEach(e => g[e.c] = (g[e.c] || 0) + e.v); return Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => x[0]); })();
