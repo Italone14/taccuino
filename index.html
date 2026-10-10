@@ -844,6 +844,20 @@ html .tab[aria-current="page"],html.v2 .tab[aria-current="page"]{background:none
 main#view{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 100px)!important}
 .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)!important}
 .r-tabs{top:0!important;position:relative!important}
+/* ===== righe tratteggiate, stile Fleur ===== */
+html.rows-dash{--dl:rgba(22,24,28,.22)}
+html.rows-dash.dark{--dl:rgba(255,255,255,.22)}
+html.rows-dash .clist,html.rows-dash .m-group,html.rows-dash .k-list{background:none!important;box-shadow:none!important;border-radius:0!important;padding:0!important;overflow:visible!important}
+html.rows-dash .crow,html.rows-dash .tx,html.rows-dash .k-main{padding-left:2px!important}
+html.rows-dash .crow::after,html.rows-dash .tx::after{left:46px!important;right:4px!important;border-bottom:1.5px dashed var(--dl)!important;display:block!important}
+html.rows-dash .sw:last-child .tx::after,html.rows-dash .m-group>.tx:last-child::after{display:block!important}
+html.rows-dash .crow:last-child::after{display:block!important}
+html.rows-dash .k-row+.k-row::before{display:none!important}
+html.rows-dash .k-row::after{content:"";position:absolute;left:62px;right:4px;bottom:0;border-bottom:1.5px dashed var(--dl)}
+html.rows-dash .sw .tx{background:var(--bg)!important}
+html.rows-dash .crow:active,html.rows-dash .tx:active{box-shadow:none!important}
+html.rows-dash .m-day{margin-top:26px!important}
+html.rows-dash .k-row,html.rows-dash .k-main{background:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1570,6 +1584,9 @@ const V2 = () => stylePref() === 'v2';
 function applyStyle() { document.documentElement.classList.toggle('v2', V2()); const t = document.querySelector('.tab[data-tab="insight"]'); if (t) t.lastChild.textContent = V2() ? 'Analisi' : 'Approfondimenti'; }
 function setStyle(v) { try { localStorage.setItem('tac-style', v); } catch (e) {} applyStyle(); saveUi({ style: v }); render(); }
 applyStyle();
+function rowPref() { let v = null; try { v = localStorage.getItem('tac-rows'); } catch (e) {} return v || (window.CONF && CONF.ui && CONF.ui.rows) || 'dash'; }
+function setRows(v, save) { try { localStorage.setItem('tac-rows', v); } catch (e) {} document.documentElement.classList.toggle('rows-dash', v === 'dash'); if (save) saveUi({ rows: v }); }
+setRows(rowPref());
 function bxPref() { let v = null; try { v = localStorage.getItem('tac-bx'); } catch (e) {} return v || (window.CONF && CONF.ui && CONF.ui.bx) || '24'; }
 function setBx(v, save) { try { localStorage.setItem('tac-bx', v); } catch (e) {} document.documentElement.style.setProperty('--bx', v + 'px'); if (save) saveUi({ bx: v }); }
 setBx(bxPref());
@@ -1869,6 +1886,8 @@ function drawSettings() {
       <div class="fsec" style="margin-top:22px">Aspetto</div>
       <div class="seg" style="margin-top:8px">${[['light','Chiaro'],['dark','Scuro'],['auto','Automatico']].map(([k, l]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themePref() === k}">${l}</button>`).join('')}</div>
       <p class="status" style="text-align:left;margin-top:8px">Automatico segue il tema del telefono. La scelta resta salvata anche quando riapri l'app.</p>
+      <div class="fsec" style="margin-top:22px">Righe delle liste</div>
+      <div class="seg" style="margin-top:8px;grid-template-columns:1fr 1fr">${[['dash', 'Tratteggiate'], ['card', 'Riquadri']].map(([k, l]) => `<button type="button" data-rows="${k}" aria-pressed="${rowPref() === k}">${l}</button>`).join('')}</div>
       <div class="fsec" style="margin-top:22px">Spazio in basso</div>
       <div class="seg" style="margin-top:8px;grid-template-columns:repeat(4,1fr)">${[['0', 'Nessuno'], ['24', 'Normale'], ['44', 'Più alto'], ['64', 'Molto alto']].map(([k, l]) => `<button type="button" data-bx="${k}" aria-pressed="${bxPref() === k}">${l}</button>`).join('')}</div>
       <p class="status" style="text-align:left;margin-top:8px">Se la barra in basso o lo 0 della tastiera finiscono fuori dallo schermo, alza questo valore.</p>
@@ -1943,6 +1962,7 @@ function bindSettings() {
   if ($('sImport')) $('sImport').onchange = async () => { const f = $('sImport').files[0]; if (!f) return; toast('Importo…'); try { const n = await importData(db, JSON.parse(await f.text())); toast(`Importati ${n} documenti`); } catch (e) { toast(e && e.code === 'permission-denied' ? 'Permesso negato: controlla le regole su Firebase' : 'Import non riuscito: ' + ((e && (e.code || e.message)) || 'errore')); } };
   if ($('sExport')) $('sExport').onclick = () => exportData().then(() => toast('Backup scaricato')).catch(() => toast('Non sono riuscito: riprova'));
   if ($('sLogout')) $('sLogout').onclick = () => { closeSettings(); firebase.auth().signOut().then(() => location.reload()); };
+  el.querySelectorAll('[data-rows]').forEach(b => b.onclick = () => { setRows(b.dataset.rows, true); drawSettings(); });
   el.querySelectorAll('[data-bx]').forEach(b => b.onclick = () => { setBx(b.dataset.bx, true); drawSettings(); });
   el.querySelectorAll('[data-style-set]').forEach(b => b.onclick = () => { setStyle(b.dataset.styleSet); drawSettings(); });
   el.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => { setTheme(b.dataset.themeSet); drawSettings(); });
@@ -2057,7 +2077,7 @@ render();
     UNSUB.forEach(u => { try { u(); } catch (e) {} }); UNSUB = [];
     const meta = (k, s) => { SYNC[k] = { at: Date.now(), cache: !!(s.metadata && s.metadata.fromCache), pending: !!(s.metadata && s.metadata.hasPendingWrites) }; SYNC.err = null; if (!$('set').hidden && SET.view === 'sync') drawSettings(); };
     const failS = e => { SYNC.err = e && e.code || 'unavailable'; fail(e); if (!$('set').hidden) drawSettings(); };
-    UNSUB.push(db.doc('config/app').onSnapshot(s => { CONF = s.exists ? { ...s.data() } : {}; window.CONF = CONF; if (CONF.ui) { try { if (CONF.ui.theme) localStorage.setItem('tac-theme', CONF.ui.theme); if (CONF.ui.style) localStorage.setItem('tac-style', CONF.ui.style); if (CONF.ui.bx) localStorage.setItem('tac-bx', CONF.ui.bx); } catch (e) {} applyTheme(); applyStyle(); document.documentElement.style.setProperty('--bx', bxPref() + 'px'); } Object.entries(ACC_REN).forEach(([o, n]) => { if (CONF.acc && CONF.acc[o] && !CONF.acc[n]) { CONF.acc = { ...CONF.acc, [n]: CONF.acc[o] }; } if (CONF.accOrder) CONF.accOrder = CONF.accOrder.map(x => x === o ? n : x); if (CONF.extraAcc) CONF.extraAcc = CONF.extraAcc.map(x => x === o ? n : x); }); meta('c', s); done('c'); }, failS));
+    UNSUB.push(db.doc('config/app').onSnapshot(s => { CONF = s.exists ? { ...s.data() } : {}; window.CONF = CONF; if (CONF.ui) { try { if (CONF.ui.theme) localStorage.setItem('tac-theme', CONF.ui.theme); if (CONF.ui.style) localStorage.setItem('tac-style', CONF.ui.style); if (CONF.ui.bx) localStorage.setItem('tac-bx', CONF.ui.bx); if (CONF.ui.rows) localStorage.setItem('tac-rows', CONF.ui.rows); } catch (e) {} applyTheme(); applyStyle(); setRows(rowPref()); document.documentElement.style.setProperty('--bx', bxPref() + 'px'); } Object.entries(ACC_REN).forEach(([o, n]) => { if (CONF.acc && CONF.acc[o] && !CONF.acc[n]) { CONF.acc = { ...CONF.acc, [n]: CONF.acc[o] }; } if (CONF.accOrder) CONF.accOrder = CONF.accOrder.map(x => x === o ? n : x); if (CONF.extraAcc) CONF.extraAcc = CONF.extraAcc.map(x => x === o ? n : x); }); meta('c', s); done('c'); }, failS));
     UNSUB.push(db.collection('storico').limit(200).onSnapshot(s => { HIST = {}; s.docs.forEach(d => { const x = d.data(); (x.tx || []).forEach(renAcc); HIST[d.id] = x; }); meta('h', s); done('h'); }, failS));
     UNSUB.push(db.collection('tx').limit(1000).onSnapshot(s => { NEWS = s.docs.map(d => renAcc({ id: d.id, ...d.data() })).filter(e => typeof e.v === 'number' && e.d); meta('n', s); done('n'); }, failS));
   };
