@@ -834,6 +834,16 @@ html.dark body:not(.light) .h-saldo b.pos-saldo,html.dark body:not(.light) .nw .
 .lg-file{display:block;cursor:pointer}
 /* intestazione a tutta larghezza */
 .topbar{box-shadow:0 0 0 100vmax color-mix(in srgb,var(--bg) 84%,transparent);clip-path:inset(0 -100vmax)}
+/* ===== app a schermo intero: barra in alto che scorre via, barra in basso piena come Fleur ===== */
+.topbar{position:relative!important;top:auto!important;padding-top:calc(env(safe-area-inset-top,0px) + 8px)!important;background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;clip-path:none!important}
+.tabbar{left:0!important;right:0!important;bottom:0!important;max-width:none!important;margin:0!important;border-radius:0!important;border:0!important;border-top:.5px solid var(--dash)!important;box-shadow:none!important;
+  background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:6px 6px calc(env(safe-area-inset-bottom,0px) + 6px)!important}
+html.dark body:not(.light) .tabbar{background:#111214!important}
+html .tab[aria-current="page"],html.v2 .tab[aria-current="page"]{background:none!important}
+.fab{bottom:calc(env(safe-area-inset-bottom,0px) + 78px)!important}
+main#view{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 100px)!important}
+.toast{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)!important}
+.r-tabs{top:0!important;position:relative!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
