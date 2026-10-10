@@ -859,13 +859,13 @@ html.rows-dash .crow:active,html.rows-dash .tx:active{box-shadow:none!important}
 html.rows-dash .m-day{margin-top:26px!important}
 html.rows-dash .k-row,html.rows-dash .k-main{background:none!important}
 /* tema scuro: sfondo grigio scuro come i riquadri, niente nero */
-html.dark body:not(.light){--bg:#262629!important;--card:#303034!important;--bg-2:#38383c!important;background:#262629!important}
-html.dark{background:#262629!important}
-html.dark body:not(.light) .tabbar{background:#262629!important}
-html.dark body:not(.light) .topbar{background:#262629!important}
-html.dark body:not(.light) .sw .tx{background:#262629!important}
-html.dark body.light,html.dark body.light .topbar{background:#262629!important}
-html.dark body.light{--bg:#262629!important;--card:#303034!important}
+html.dark body:not(.light){--bg:#323236!important;--card:#3d3d42!important;--bg-2:#47474c!important;background:#323236!important}
+html.dark{background:#323236!important}
+html.dark body:not(.light) .tabbar{background:#323236!important}
+html.dark body:not(.light) .topbar{background:#323236!important}
+html.dark body:not(.light) .sw .tx{background:#323236!important}
+html.dark body.light,html.dark body.light .topbar{background:#323236!important}
+html.dark body.light{--bg:#323236!important;--card:#3d3d42!important}
 .v2-cbar{display:none!important}
 /* budget per voce a barre spesse */
 .bb-list{margin-top:8px}
@@ -951,7 +951,7 @@ html.dark body.light .pg3-tot{border-top-color:#f1f1ef}
 .vd-tbl div.old{opacity:.6}
 .vd-tbl b{font-size:13px;min-width:120px;text-align:right}.vd-tbl b.neg{color:var(--bad)}.vd-tbl b.pos{color:var(--good)}
 html:not(.dark) body.light .sheet{--ink:#15191c;--ink-2:#4c524f;--muted:#858a82;--bg-2:#efece6;--dash:rgba(22,24,28,.08);color:#15191c;background:#fff}
-html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--ink-2:#b8bcc4;--muted:#8a8f98;--bg-2:#38383c;--dash:rgba(255,255,255,.1);color:#f1f1ef;background:#303034!important}
+html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--ink-2:#b8bcc4;--muted:#8a8f98;--bg-2:#47474c;--dash:rgba(255,255,255,.1);color:#f1f1ef;background:#3d3d42!important}
 .vd-tbl div.old{opacity:1!important}.vd-tbl div.old>span{color:var(--muted)}
 .vd-h h2{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -1107,13 +1107,13 @@ const ML = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','ag
 const WD = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 const MS = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 const now = new Date();
-let iTab = 'budget', sTab = 'andamento';
+let iTab = 'budget', sTab = 'risparmio';
 let tab = 'home', cur = { y: now.getFullYear(), m: now.getMonth() };
 let P = { mode: 'month', anchor: '', from: '', to: '', startDay: 1, acc: null };
 try { const sd = parseInt(localStorage.getItem('tac-startDay'), 10); if (sd >= 1 && sd <= 28) P.startDay = sd; } catch (e) {}
 const ACC_REN = { 'Amex Italo': 'Italo', 'Amex Old': 'AMEX' }; const renAcc = e => { if (e && ACC_REN[e.a]) e.a = ACC_REN[e.a]; if (e && ACC_REN[e.to]) e.to = ACC_REN[e.to]; return e; };
 let db = null, HIST = {}, NEWS = [], CONF = {}, ready = { h: false, n: false, c: false };
-let txFilter = { q: '', cat: null, type: null }, searchOpen = false, trendCat = 'Ristorante';
+let txFilter = { q: '', cat: null, type: null }, searchOpen = false, trendCat = 'ristoranti';
 const VAR_REV = 2;
 const VAR = () => DEFAULT_VAR.map(v => { const o = (CONF.varRev === VAR_REV ? CONF.var || [] : []).find(x => x.k === v.k); return { ...v, limit: o && typeof o.limit === 'number' ? o.limit : v.limit }; }), FIX = () => DEFAULT_FIX;
 const eur = v => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -1647,14 +1647,17 @@ function viewInsight() {
     <p class="r-note">Quello che non spendi in una voce resta nel suo salvadanaio per i mesi dopo; se sfori, la differenza viene tolta da lì. Tocca una voce per vedere le sue categorie e com'è andata mese per mese.</p>
     <button type="button" class="r-link" id="piggyReset">Svuota e riparti da ${mName}</button>`}</section>`;
   // andamento
-  const L = last12(), cats = (() => { const g = {}; TX().filter(e => isSpend(e) && e.d >= monthRange(L[0].y, L[0].m, P.startDay || 1).from).forEach(e => g[e.c] = (g[e.c] || 0) + e.v); return Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => x[0]); })();
-  if (!cats.includes(trendCat)) trendCat = cats[0] || 'Ristorante';
-  const tv = L.map(d => sumBy(monthTx(mk(d.y, d.m)).filter(e => isSpend(e) && e.c === trendCat), e => e.v));
+  const L = last12(), TG = [...VAR().map(v => ({ k: v.k, name: v.name, ic: v.cats[0] || 'Vario', keys: v.k === 'cura' ? ['v:cura', 'f:dentista'] : ['v:' + v.k] })),
+    { k: 'beneficenza', name: 'Beneficenza', ic: 'Beneficenza', keys: ['f:beneficenza'] }, { k: 'abbonamenti', name: 'Abbonamenti', ic: 'Abbonamenti', keys: ['f:abbonamenti'] },
+    { k: 'canone', name: 'Canone conto', ic: 'Canone conto', keys: ['f:canone'] }, { k: 'sport', name: 'Sport', ic: 'Sport', keys: ['f:sport'] }];
+  if (!TG.some(g => g.k === trendCat)) trendCat = 'ristoranti';
+  const TGc = TG.find(g => g.k === trendCat), inTG = e => { const b = budgetKey(e); return !!b && TGc.keys.includes(b[0] + ':' + b[1]); };
+  const tv = L.map(d => sumBy(monthTx(mk(d.y, d.m)).filter(inTG), e => e.v));
   const avg11 = tv.slice(0, 11).reduce((a, b) => a + b, 0) / 11, varMax = Math.max(...tv.slice(0, 11)), iMax = tv.indexOf(varMax);
   let pA = `<section class="r-card"><div class="r-head"><h2>Andamento di una categoria</h2><span>ultimi 12 mesi</span></div>
-    <div class="r-chips">${cats.map(c => `<button type="button" class="r-chip" data-trend="${esc(c)}" aria-pressed="${c === trendCat}">${esc(c)}</button>`).join('')}</div>
+    <div class="r-chips">${TG.map(g => `<button type="button" class="r-chip" data-trend="${g.k}" aria-pressed="${g.k === trendCat}">${esc(g.name)}</button>`).join('')}</div>
     ${rbars(tv, L.map(d => `${MS[d.m]} ${d.y}`), { line: avg11, lineLabel: `media ${eur0(avg11)}`, color: (v, i) => i === 11 ? '#15191c' : v > avg11 * 1.5 ? '#eb6834' : '#2a78d6' })}
-    <p class="r-note"><b>${esc(trendCat)}</b>: ${eur(tv[11])} ${B.isNow ? 'finora' : ''} a ${mName}, contro una media di ${eur(avg11)} nei mesi precedenti. Il mese più alto è stato ${MS[L[iMax].m]} ${L[iMax].y} (${eur(varMax)}). In arancione i mesi oltre una volta e mezza la media.</p></section>`;
+    <p class="r-note"><b>${esc(TGc.name)}</b>${trendCat === 'cura' ? ' (dentista compreso)' : ''}: ${eur(tv[11])} ${B.isNow ? 'finora' : ''} a ${mName}, contro una media di ${eur(avg11)} nei mesi precedenti. Il mese più alto è stato ${MS[L[iMax].m]} ${L[iMax].y} (${eur(varMax)}). In arancione i mesi oltre una volta e mezza la media.</p></section>`;
   // confronto
   const prev = addM(cur.y, cur.m, -1);
   const byV = k2 => { const o = {}; monthTx(k2).filter(isSpend).forEach(e => { const b = budgetKey(e); if (b && b[0] === 'v') o[b[1]] = (o[b[1]] || 0) + e.v; }); return o; };
@@ -1693,7 +1696,7 @@ function viewInsight() {
     <table class="r-tbl"><thead><tr><th>Mese</th><th>Stipendio</th><th>10%</th><th>Dato</th><th>Diff.</th></tr></thead><tbody>
     ${bM.map(r => `<tr><td>${ML[r.m][0].toUpperCase() + ML[r.m].slice(1)}</td><td>${r.st ? eur0(r.st) : '<small>—</small>'}</td><td>${eur0(r.dov)}</td><td>${eur0(r.dato)}</td><td>${r.st || r.dato ? dTxt(r.diff) : '<small>—</small>'}</td></tr>`).join('')}</tbody></table>
     <p class="r-note">Come il foglio "Beneficenza" su Drive: per ogni anno il 10% dello stipendio (categoria Stipendio) confrontato con quanto hai dato (categoria Beneficenza). La differenza si accumula: se un mese dai di meno, recuperi nei mesi dopo. Lo stipendio del mese in corso entra solo quando arriva.</p></section>`;
-  const pT = `<div class="r-sub-tabs">${[['andamento', 'Andamento'], ['confronto', 'Confronto'], ['risparmio', 'Risparmio'], ['saldo', 'Saldo'], ['beneficenza', 'Beneficenza'], ['abbonamenti', 'Abbonamenti']].map(([k, l]) => `<button type="button" data-stab="${k}" aria-pressed="${sTab === k}">${l}</button>`).join('')}</div>` + (sTab === 'confronto' ? pC : sTab === 'risparmio' ? pR : sTab === 'saldo' ? viewBal() : sTab === 'beneficenza' ? pBen : sTab === 'abbonamenti' ? viewSubs() : pA);
+  const pT = `<div class="r-sub-tabs">${[['risparmio', 'Risparmio'], ['saldo', 'Saldo'], ['abbonamenti', 'Abbonamenti'], ['andamento', 'Andamento'], ['confronto', 'Confronto'], ['beneficenza', 'Beneficenza']].map(([k, l]) => `<button type="button" data-stab="${k}" aria-pressed="${sTab === k}">${l}</button>`).join('')}</div>` + (sTab === 'confronto' ? pC : sTab === 'risparmio' ? pR : sTab === 'saldo' ? viewBal() : sTab === 'beneficenza' ? pBen : sTab === 'abbonamenti' ? viewSubs() : pA);
   return h + (iTab === 'budget' ? pB : iTab === 'salv' ? pS : pT) + '</div>';
 }
 
@@ -1737,14 +1740,14 @@ function saldoSpark(total) {
 /* ---------- tema chiaro / scuro ---------- */
 function themePref() { let v = null; try { v = localStorage.getItem('tac-theme'); } catch (e) {} return v || (window.CONF && CONF.ui && CONF.ui.theme) || 'light'; }
 const darkMQ = matchMedia('(prefers-color-scheme: dark)');
-function applyTheme() { const p = themePref(), dark = p === 'dark' || (p === 'auto' && darkMQ.matches); document.documentElement.classList.toggle('dark', dark); if (document.body && document.body.classList.contains('light')) document.documentElement.style.background = dark ? '#262629' : '#f4f4f0'; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? '#262629' : '#f7f5f1'; }
+function applyTheme() { const p = themePref(), dark = p === 'dark' || (p === 'auto' && darkMQ.matches); document.documentElement.classList.toggle('dark', dark); if (document.body && document.body.classList.contains('light')) document.documentElement.style.background = dark ? '#323236' : '#f4f4f0'; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? '#323236' : '#f7f5f1'; }
 function setTheme(p) { try { localStorage.setItem('tac-theme', p); } catch (e) {} applyTheme(); saveUi({ theme: p }); }
 function saveUi(patch) { try { if (typeof db !== 'undefined' && db) { CONF = { ...CONF, ui: { ...(CONF.ui || {}), ...patch } }; db.doc('config/app').set(CONF); } } catch (e) {} }
 darkMQ.addEventListener && darkMQ.addEventListener('change', applyTheme);
 applyTheme();
 
 function render() {
-  _cache = null; document.body.classList.toggle('light', tab === 'insight'); document.documentElement.style.background = tab === 'insight' ? (document.documentElement.classList.contains('dark') ? '#262629' : '#f4f4f0') : ''; setTop();
+  _cache = null; document.body.classList.toggle('light', tab === 'insight'); document.documentElement.style.background = tab === 'insight' ? (document.documentElement.classList.contains('dark') ? '#323236' : '#f4f4f0') : ''; setTop();
   const v = $('view');
   if (render._t !== tab) { v.style.animation = 'none'; void v.offsetWidth; v.style.animation = ''; render._t = tab; }
   v.innerHTML = tab === 'home' ? viewHome() : tab === 'tx' ? viewTx() : tab === 'conti' ? viewConti() : viewInsight();
@@ -2205,7 +2208,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.7';
+const APP_VER = '2026-10-10.8';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
