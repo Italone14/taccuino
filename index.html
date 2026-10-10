@@ -891,6 +891,20 @@ html.dark body.light .bb-tot{border-top-color:#f1f1ef}
 .eye{border:0;background:none;padding:4px;margin:-4px 0;color:var(--muted);cursor:pointer;display:inline-grid;place-items:center}
 .eye svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hid{letter-spacing:.06em!important}
+/* scrivi la spesa a parole */
+.xai{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:14px;padding:6px 6px 6px 12px;margin-top:12px;box-shadow:inset 0 0 0 1px var(--dash)}
+.xai input{flex:1;min-width:0;border:0;background:none;color:var(--ink);font:inherit;font-size:17.8px!important;outline:none;padding:6px 0}
+.xai button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;font-weight:700;background:var(--acc,#6b4eff);color:#fff;cursor:pointer}
+/* budget per voce più compatto */
+.bb{margin:0 0 10px!important}
+.bbt{gap:8px!important;margin-bottom:4px!important}
+.bbt .ico{width:22px!important;height:22px!important}
+.bbn{font-size:14px!important;display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden}
+.bbn small{display:inline!important;font-size:11.5px!important;margin:0!important;overflow:hidden;text-overflow:ellipsis}
+.bbt b{font-size:12.5px!important}
+.bbar{height:7px!important;border-radius:4px!important}.bbar i{border-radius:4px!important}
+.bbar em{top:-2px!important;bottom:-2px!important}
+.bb-tot{padding-top:8px!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1542,7 +1556,7 @@ function viewInsight() {
     <div class="bb-list">${VAR().map(v => { const s2 = B.spentV[v.k] || 0, l = v.limit - s2, p = Math.min(100, s2 / Math.max(v.limit, .01) * 100), c0 = v.cats[0] || 'Vario', col = l < 0 ? '#ff5a4a' : ((customCat(c0) || {}).color || (CAT[c0] || [0, '#8e9097'])[1]);
       return `<div class="bb"><div class="bbt">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur(s2)} di ${eur(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? eur(-l) + ' sforato' : eur(l) + ' restano'}</b></div><div class="bbar"><i style="width:${p}%;background:${col}"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div>`; }).join('')}
     <div class="bb bb-tot"><div class="bbt"><span class="bbn">Totale variabili<small>${eur(B.spent)} di ${eur(B.limit)}</small></span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? eur(-B.left) + ' sforato' : eur(B.left) + ' restano'}</b></div><div class="bbar"><i style="width:${Math.min(100, B.spent / Math.max(B.limit, .01) * 100)}%;background:var(--acc,#6b4eff)"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div></div>
-    ${B.isNow ? `<p class="r-note">La tacca su ogni barra indica dove dovresti essere oggi se spendessi in modo uniforme: se la barra la supera, stai andando più veloce del previsto.</p>` : ''}
+    ${B.isNow ? `<p class="r-note">La lineetta su ogni barra è il punto in cui dovresti essere oggi spendendo in modo regolare (oggi è il giorno ${B.day} di ${B.dIn}, quindi al ${Math.round(B.day / B.dIn * 100)}% del mese). Barra prima della lineetta: sei in linea. Barra oltre: stai spendendo più in fretta del previsto.</p>` : ''}
     <div class="r-sub">Spese fisse</div>
     <table class="r-tbl"><tbody>${FIX().map(f => { const s2 = B.spentF[f.k] || 0, done = s2 >= f.amount - .01; return `<tr><td>${esc(f.name)} <small>${esc(f.note || '')}</small></td><td>${eur(s2)} <span class="r-dim2">di ${eur(f.amount)}</span><br>${done ? '<span class="r-ok">pagato</span>' : s2 > 0 ? '<span class="r-part">in parte</span>' : '<span class="r-no">da pagare</span>'}</td></tr>`; }).join('')}</tbody></table>
     <button type="button" class="r-link" id="editBudget">Modifica i limiti</button></section>`;
@@ -1723,6 +1737,49 @@ function openSheet(e) {
 }
 function closeTxe() { $('txe').hidden = true; document.body.style.overflow = ''; S = null; }
 function txRow(k, label, val, extra = '') { return `<button type="button" class="xrow" data-row="${k}"><span>${label}</span><span class="xv">${val}<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span>${extra}</button>`; }
+/* ================= scrivi la spesa a parole ================= */
+const KW = { Ristorante: 'mangiare mangiato pranzo cena colazione caffe caffè cornetto bar pizza panino ristorante aperitivo spritz kebab sushi mcdonald mc burger gelato bevuto birra', Spesa: 'spesa supermercato lidl conad coop esselunga carrefour eurospin alimentari', Trasporti: 'treno bus autobus metro biglietto taxi uber parcheggio atac trenitalia italo flixbus flix pedaggio casello', Benzina: 'benzina carburante pieno distributore', Moto: 'moto tagliando', Auto: 'auto macchina', Regalo: 'regalo regali', Compleanno: 'compleanno', Arturo: 'arturo ragazza fidanzata', Vestiti: 'vestiti maglia maglietta scarpe pantaloni felpa giacca jeans zara', 'Cura personale': 'farmacia barbiere capelli sopracciglia medico visita estetista dentista', Palestra: 'palestra proteine integratori creatina', Sport: 'calcetto padel sport', Tecnologia: 'tecnologia cavo cuffie caricatore computer telefono', Online: 'amazon online', Libri: 'libro libri', Abbonamenti: 'abbonamento netflix spotify icloud claude chatgpt tim', Beneficenza: 'beneficenza donazione offerta', Viaggi: 'viaggio volo aereo hotel albergo airbnb', Vacanze: 'vacanza vacanze mare', Divertimento: 'cinema concerto discoteca serata', Giochi: 'gioco giochi playstation steam', Stipendio: 'stipendio busta', 'Shopping Vario': 'shopping' };
+const ACC_ALIAS = { 'Trade Republic': 'trade republic tr traderepublic', 'Intesa SanPaolo': 'intesa sanpaolo', 'Revolut': 'revolut', 'AMEX': 'amex american', 'Italo': 'italo', 'Explora': 'explora', 'Contanti': 'contanti cash', 'Paypal': 'paypal', 'Postepay': 'postepay poste', 'TR INVEST': 'trinvest' };
+const STOP = new Set('ho ha hai speso spesi pagato pagata comprato comprata per con da di il lo la le gli i un una uno a al alla allo ai agli e ed in nel nella su sul sulla euro eur € oggi ieri altroieri l altro carta conto ricevuto entrata preso presa mi me ti'.split(' '));
+const norm = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+let _learn = null;
+function learned() {
+  if (_learn) return _learn; const g = {};
+  TX().forEach(e => { if (e.t === 't' || !e.n) return; norm(e.n).split(/[^a-z0-9]+/).filter(w => w.length > 2 && !STOP.has(w)).forEach(w => { (g[w] = g[w] || {})[e.c] = (g[w][e.c] || 0) + 1; }); });
+  return (_learn = g);
+}
+function parseSpoken(txt) {
+  const raw = txt.trim(), t = norm(raw), out = {};
+  const m = t.match(/(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro|eur)?/); if (m) out.cents = Math.round(parseFloat(m[1].replace(',', '.')) * 100);
+  const accs = balances().map(a => a.name); const found = [];
+  accs.forEach(a => { const al = (ACC_ALIAS[a] || norm(a)).split(' ').concat([norm(a)]); al.forEach(x => { const re = new RegExp('(^|[^a-z])' + x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)'); const k = t.search(re); if (k >= 0) found.push([k, a, x]); }); });
+  found.sort((x, y) => x[0] - y[0]); const uniq = []; found.forEach(f => { if (!uniq.some(u => u[1] === f[1])) uniq.push(f); });
+  const d = new Date(); if (/altro ?ieri/.test(t)) d.setDate(d.getDate() - 2); else if (/\bieri\b/.test(t)) d.setDate(d.getDate() - 1);
+  else { const wd = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'].findIndex(w => new RegExp('\\b' + w + '\\b').test(t)); if (wd >= 0) { const back = (d.getDay() - wd + 7) % 7 || 7; d.setDate(d.getDate() - back); } }
+  out.d = iso(d);
+  const accW = new Set(); uniq.forEach(u => { (ACC_ALIAS[u[1]] || '').split(' ').concat(norm(u[1]).split(' ')).forEach(w => w && accW.add(w)); });
+  if (/(trasferit|trasferimento|spostat|girat|ricaric)/.test(t) && uniq.length >= 2) { out.t = 't'; out.a = uniq[0][1]; out.to = uniq[1][1]; out.c = null; return out; }
+  if (uniq.length) out.a = uniq[0][1];
+  const isIn = /(stipendio|ricevut|entrat|guadagnat|incassat|rimborso|venduto|vendita)/.test(t); out.t = isIn ? 'e' : 's';
+  const allowed = new Set(isIn ? entrataCats() : spesaCats());
+  const words = t.split(/[^a-z0-9]+/).filter(w => w && !/^\d/.test(w) && !STOP.has(w) && !accW.has(w));
+  const score = {};
+  allowed.forEach(c => { if (norm(c).split(' ').some(x => words.includes(x))) score[c] = (score[c] || 0) + 10; });
+  Object.entries(KW).forEach(([c, ks]) => { if (!allowed.has(c)) return; ks.split(' ').forEach(k => { if (words.includes(norm(k))) score[c] = (score[c] || 0) + 6; }); });
+  const L = learned(); words.forEach(w => { const g = L[w]; if (!g) return; const tot = Object.values(g).reduce((a, b) => a + b, 0); Object.entries(g).forEach(([c, n]) => { if (allowed.has(c)) score[c] = (score[c] || 0) + 4 * n / tot; }); });
+  const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0]; out.c = best ? best[0] : null;
+  const note = raw.replace(/(\d+(?:[.,]\d{1,2})?)\s*(€|euro|eur)?/i, '').split(/\s+/).filter(w => { const n = norm(w).replace(/[^a-z0-9]/g, ''); return n && !STOP.has(n) && !accW.has(n) && !(out.c && norm(out.c) === n); }).join(' ').trim();
+  out.n = note ? note[0].toUpperCase() + note.slice(1) : '';
+  return out;
+}
+function applySpoken() {
+  const inp = $('xAi'); if (!inp || !inp.value.trim()) return; const r = parseSpoken(inp.value);
+  if (r.cents) S.cents = r.cents; if (r.t) { S.t = r.t; if (r.t !== 's') { S.sub = null; } } if (r.a) S.a = r.a; if (r.to) S.to = r.to; if ('c' in r && r.c) S.c = r.c; else if (r.t === 't') S.c = null;
+  if (r.d) S.d = r.d; if (r.n && !S.n) S.n = r.n; S.ai = '';
+  if (typeof subDefault === 'function') subDefault(); drawTxe();
+  toast(r.c || r.t === 't' ? 'Compilato: controlla e tocca ✓' : 'Non ho capito la categoria: sceglila tu');
+}
+
 function drawTxe() {
   const el = $('txe');
   if (S.pick) return drawPicker();
@@ -1735,6 +1792,7 @@ function drawTxe() {
   el.innerHTML = `<div class="xinner">
     <div class="xtop"><button type="button" class="ib" id="xClose" aria-label="Chiudi">${SV('M6 6l12 12M18 6L6 18')}</button><b>${S.edit ? 'Modifica transazione' : 'Nuova transazione'}</b><button type="button" class="ib" id="xOk" aria-label="Salva">${SV('M5 12.5l4.5 4.5L19 7')}</button></div>
     <div class="types">${T.map(([k, l, p, c]) => `<button type="button" class="ty" data-t="${k}" aria-pressed="${S.t === k}"><svg viewBox="0 0 24 24" style="stroke:${c}"><path d="${p}"/></svg>${l}</button>`).join('')}</div>
+    <div class="xai"><span>✨</span><input id="xAi" type="text" enterkeyhint="go" autocomplete="off" placeholder="Scrivi o detta: 2,50 Trade Republic pranzo" value="${esc(S.ai || '')}"><button type="button" id="xAiGo">Compila</button></div>
     <div class="bigamt num" id="xAmt">${fmtAmt(S.cents)}</div>
     <div class="xrows">${rows}${isSubTx() ? subRow() : txRow('rec', 'Ricorrente', (REC.find(r => r[0] === S.rec) || REC[0])[1])}
       <textarea id="xNote" enterkeyhint="done" placeholder="${isSubTx() ? 'Nome dell\'abbonamento (es. Claude, iCloud)' : 'Note'}" rows="1">${esc(S.n || '')}</textarea>
@@ -1747,6 +1805,11 @@ function drawTxe() {
   el.querySelectorAll('.xrow').forEach(b => b.onclick = ev => { if (ev.target.id === 'xDate') return; const k = b.dataset.row; S.n = $('xNote').value; if (k === 'date') { const d = $('xDate'); try { d.showPicker(); } catch (e) { d.focus(); d.click(); } return; } S.pick = k; drawTxe(); });
   $('xDate').onchange = () => { if ($('xDate').value) { S.d = $('xDate').value; S.n = $('xNote').value; drawTxe(); } };
   $('xNote').oninput = () => { S.n = $('xNote').value; };
+  $('xAi').oninput = () => { S.ai = $('xAi').value; };
+  $('xAi').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); $('xAi').blur(); applySpoken(); } };
+  $('xAiGo').onclick = () => applySpoken();
+  $('xAi').onfocus = () => $('txe').classList.add('typing');
+  $('xAi').onblur = () => setTimeout(() => { const t = $('txe'); if (t && document.activeElement !== $('xNote')) t.classList.remove('typing'); }, 80);
   $('xNote').onfocus = () => { const t = $('txe'), top = t.scrollTop; t.classList.add('typing'); const keep = () => { t.scrollTop = top; window.scrollTo(0, 0); }; [0, 60, 200, 400].forEach(ms => setTimeout(keep, ms)); if (window.visualViewport) { const vv = () => keep(); visualViewport.addEventListener('resize', vv); visualViewport.addEventListener('scroll', vv); $('xNote').addEventListener('blur', () => { visualViewport.removeEventListener('resize', vv); visualViewport.removeEventListener('scroll', vv); }, { once: true }); } };
   $('xNote').onblur = () => setTimeout(() => { const t = $('txe'); if (t) t.classList.remove('typing'); }, 80);
   $('xClose').onclick = closeTxe;
@@ -1945,6 +2008,7 @@ function drawSettings() {
       <div class="kv"><span>Ultimo aggiornamento ricevuto</span><b>${hm(Math.max(SYNC.h ? SYNC.h.at : 0, SYNC.n ? SYNC.n.at : 0, SYNC.c ? SYNC.c.at : 0))}</b></div>
       <div class="kv"><span>Movimenti in totale</span><b>${all.length.toLocaleString('it-IT')}</b></div>
       <div class="kv"><span>di cui aggiunti in Taccuino</span><b>${NEWS.length}</b></div>
+      <div class="kv"><span>Versione dell'app</span><b>${APP_VER}</b></div>
       <div class="kv"><span>Storico importato</span><b>${Object.keys(HIST).length} mesi</b></div>
       <div class="kv"><span>Ultima aggiunta</span><b>${last ? new Date(last).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</b></div>
       <p class="status" style="text-align:left;margin-top:16px">I dati sono salvati online nel tuo database Firebase, legati al tuo account (${esc(FBUSER ? FBUSER.email : '')}). Su ogni dispositivo dove accedi con la stessa email vedi gli stessi movimenti, e le modifiche arrivano da sole in pochi secondi. Funziona anche senza connessione: quello che segni si sincronizza appena torni online.</p>
@@ -2052,6 +2116,16 @@ $('mtitle').onclick = () => { if (tab !== 'insight') openPeriod(); };
 $('filterBtn').onclick = () => openPeriod();
 $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFilter.q = ''; render(); if (searchOpen) $('q').focus(); };
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
+
+/* ================= aggiornamento automatico ================= */
+const APP_VER = '2026-10-10.1';
+async function checkUpdate() {
+  if (window.claude || location.protocol === 'file:') return;
+  try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
+    if (m && m[1] !== APP_VER) { toast('Aggiorno l\'app…'); setTimeout(() => location.replace(location.pathname + '?v=' + m[1]), 600); } } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+setTimeout(checkUpdate, 1500);
 
 /* ================= Firebase: accesso e dati ================= */
 const FB_CONFIG = { apiKey: "AIzaSyD-an8EoYxGqaicsjqxtDOLWNMD6jweb2g", authDomain: "taccuino-d80c4.firebaseapp.com", projectId: "taccuino-d80c4", storageBucket: "taccuino-d80c4.firebasestorage.app", messagingSenderId: "986043094240", appId: "1:986043094240:web:be6a896dd468b203f62c85" };
