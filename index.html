@@ -1513,7 +1513,7 @@ function viewInsight() {
     <div><span>Entrate − spese</span><b style="color:${inc - sp < 0 ? '#c2412f' : 'inherit'}">${eur0(inc - sp)}</b><small>obiettivo ${eur0(SAVING_GOAL)}</small></div>
   </div>`;
   // budget
-  let pB = kpis + `<section class="r-card"><div class="r-head"><h2>Budget per voce</h2><span>${eur0(B.spent)} spesi di ${eur0(B.limit)}</span></div>
+  let pB = `<section class="r-card"><div class="r-head"><h2>Budget per voce</h2><span>${eur0(B.spent)} spesi di ${eur0(B.limit)}</span></div>
     ${!(key < PIGGY_START()) && key > PIGGY_START() ? `<p class="r-note" style="margin:0 0 6px">Qui vedi solo il budget di questo mese. Quanto hai davvero a disposizione, contando anche quello che hai messo da parte, è nel <button type="button" class="r-anchor" data-itab="salv">Salvadanaio</button>.</p>` : ''}
     <table class="r-tbl"><thead><tr><th>Voce</th><th class="w">Andamento</th><th>Resta</th></tr></thead><tbody>
     ${VAR().map(v => { const s2 = B.spentV[v.k] || 0, l = v.limit - s2, p = Math.min(100, s2 / Math.max(v.limit, .01) * 100), c = l < 0 ? '#eb6834' : '#2a78d6';
