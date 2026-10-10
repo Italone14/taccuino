@@ -867,6 +867,25 @@ html.dark body:not(.light) .sw .tx{background:#1c1c1e!important}
 html.dark body.light,html.dark body.light .topbar{background:#1c1c1e!important}
 html.dark body.light{--bg:#1c1c1e!important;--card:#262629!important}
 .v2-cbar{display:none!important}
+/* budget per voce a barre spesse */
+.bb-list{margin-top:8px}
+.bb{margin:0 0 16px}
+.bbt{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bbt .ico{width:30px!important;height:30px!important;flex:none;border-radius:50%!important}
+.bbn{flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.2}
+.bbn small{display:block;font-size:12px;font-weight:500;color:#858a82;margin-top:1px}
+.bbt b{font-size:13.5px;font-weight:700;white-space:nowrap;color:#4c524f}
+.bbt b.neg{color:#c2412f}
+.bbar{position:relative;height:12px;border-radius:6px;background:#e7e7e1}
+.bbar i{display:block;height:100%;border-radius:6px;min-width:4px}
+.bbar em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:#15191c;opacity:.55}
+.bb-tot{border-top:1.5px solid #15191c;padding-top:12px;margin-top:4px}
+html.dark body.light .bbn small{color:#8a8f98}
+html.dark body.light .bbt b{color:#d6d8dc}
+html.dark body.light .bbt b.neg{color:#ff7a66}
+html.dark body.light .bbar{background:#2c2c2f}
+html.dark body.light .bbar em{background:#fff;opacity:.7}
+html.dark body.light .bb-tot{border-top-color:#f1f1ef}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1515,11 +1534,10 @@ function viewInsight() {
   // budget
   let pB = `<section class="r-card"><div class="r-head"><h2>Budget per voce</h2><span>${eur0(B.spent)} spesi di ${eur0(B.limit)}</span></div>
     ${!(key < PIGGY_START()) && key > PIGGY_START() ? `<p class="r-note" style="margin:0 0 6px">Qui vedi solo il budget di questo mese. Quanto hai davvero a disposizione, contando anche quello che hai messo da parte, è nel <button type="button" class="r-anchor" data-itab="salv">Salvadanaio</button>.</p>` : ''}
-    <table class="r-tbl"><thead><tr><th>Voce</th><th class="w">Andamento</th><th>Resta</th></tr></thead><tbody>
-    ${VAR().map(v => { const s2 = B.spentV[v.k] || 0, l = v.limit - s2, p = Math.min(100, s2 / Math.max(v.limit, .01) * 100), c = l < 0 ? '#eb6834' : '#2a78d6';
-      return `<tr><td>${esc(v.name)}<small class="r-dim">${eur(s2)} di ${eur(v.limit)}</small></td><td class="w"><span class="r-bar"><i style="width:${p}%;background:${c}"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</span></td><td class="${l < 0 ? 'neg' : ''}">${l < 0 ? '−' + eur(-l) : eur(l)}</td></tr>`; }).join('')}
-    <tr class="tot"><td>Totale variabili<small class="r-dim">${eur(B.spent)} di ${eur(B.limit)}</small></td><td class="w"></td><td class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? '−' + eur(-B.left) : eur(B.left)}</td></tr></tbody></table>
-    ${B.isNow ? `<p class="r-note">La tacca sottile su ogni barra indica dove dovresti essere oggi se spendessi in modo uniforme.</p>` : ''}
+    <div class="bb-list">${VAR().map(v => { const s2 = B.spentV[v.k] || 0, l = v.limit - s2, p = Math.min(100, s2 / Math.max(v.limit, .01) * 100), c0 = v.cats[0] || 'Vario', col = l < 0 ? '#ff5a4a' : ((customCat(c0) || {}).color || (CAT[c0] || [0, '#8e9097'])[1]);
+      return `<div class="bb"><div class="bbt">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur(s2)} di ${eur(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? eur(-l) + ' sforato' : eur(l) + ' restano'}</b></div><div class="bbar"><i style="width:${p}%;background:${col}"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div>`; }).join('')}
+    <div class="bb bb-tot"><div class="bbt"><span class="bbn">Totale variabili<small>${eur(B.spent)} di ${eur(B.limit)}</small></span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? eur(-B.left) + ' sforato' : eur(B.left) + ' restano'}</b></div><div class="bbar"><i style="width:${Math.min(100, B.spent / Math.max(B.limit, .01) * 100)}%;background:var(--acc,#6b4eff)"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div></div>
+    ${B.isNow ? `<p class="r-note">La tacca su ogni barra indica dove dovresti essere oggi se spendessi in modo uniforme: se la barra la supera, stai andando più veloce del previsto.</p>` : ''}
     <div class="r-sub">Spese fisse</div>
     <table class="r-tbl"><tbody>${FIX().map(f => { const s2 = B.spentF[f.k] || 0, done = s2 >= f.amount - .01; return `<tr><td>${esc(f.name)} <small>${esc(f.note || '')}</small></td><td>${eur(s2)} <span class="r-dim2">di ${eur(f.amount)}</span><br>${done ? '<span class="r-ok">pagato</span>' : s2 > 0 ? '<span class="r-part">in parte</span>' : '<span class="r-no">da pagare</span>'}</td></tr>`; }).join('')}</tbody></table>
     <button type="button" class="r-link" id="editBudget">Modifica i limiti</button></section>`;
