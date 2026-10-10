@@ -1589,7 +1589,7 @@ function openVoce(k) {
   const v = VAR().find(x => x.k === k); if (!v) return;
   const subs = [...v.cats, ...(CONF.cats || []).filter(c => c.type === 's' && c.voce === k).map(c => c.name)];
   const start = PIGGY_START(), now2 = new Date(), rows = [];
-  for (let i = 0; i < 24; i++) { const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1), key = mk(d.getFullYear(), d.getMonth()); if (key < '2023-12') break; const sp = budgetState(key).spentV[k] || 0; rows.push({ d, key, sp, diff: v.limit - sp, active: key >= start }); }
+  for (let i = 0; i < 24; i++) { const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1), key = mk(d.getFullYear(), d.getMonth()); if (key < start) break; const sp = budgetState(key).spentV[k] || 0; rows.push({ d, key, sp, diff: v.limit - sp, active: key >= start }); }
   const past = rows.filter(r => r.key < mk(now2.getFullYear(), now2.getMonth()));
   const avg = past.length ? past.reduce((a, r) => a + r.sp, 0) / past.length : 0, ok = past.filter(r => r.diff >= 0).length;
   const f = x => `${x < 0 ? '−' : '+'}${eur(Math.abs(x))}`;
@@ -1597,8 +1597,8 @@ function openVoce(k) {
     <div class="fsec">Categorie che contano qui</div>
     <div class="vd-chips">${subs.map(c => `<span>${icon(c, true)}${esc(c)}</span>`).join('') || '<span>—</span>'}${v.rule ? `<p class="status" style="text-align:left;margin:6px 0 0">${esc(v.rule)}</p>` : ''}</div>
     <div class="fsec" style="margin-top:16px">Mese per mese</div>
-    <p class="status" style="text-align:left;margin:0 0 6px">Media ${eur(avg)} al mese · sotto il limite ${ok} mesi su ${past.length}. Prima di ${ML[+start.slice(5) - 1]} ${start.slice(0, 4)} il budget non c'era: il confronto è con il limite di oggi.</p>
-    <div class="vd-tbl">${rows.map(r => `<div class="${r.active ? '' : 'old'}"><span>${ML[r.d.getMonth()].slice(0, 3)} ${r.d.getFullYear()}</span><span>${eur(r.sp)}</span><b class="${r.diff < 0 ? 'neg' : 'pos'}">${r.diff < 0 ? 'sforato ' : 'avanzato '}${eur(Math.abs(r.diff))}</b></div>`).join('')}</div>
+    <p class="status" style="text-align:left;margin:0 0 6px">${past.length ? `Media ${eur(avg)} al mese · sotto il limite ${ok} ${ok === 1 ? 'mese' : 'mesi'} su ${past.length}.` : `Il budget parte da ${ML[+start.slice(5) - 1]} ${start.slice(0, 4)}: qui si aggiungerà un mese alla volta.`}</p>
+    <div class="vd-tbl">${rows.map(r => `<div class="${r.active ? '' : 'old'}"><span>${ML[r.d.getMonth()].slice(0, 3)} ${r.d.getFullYear()}</span><span>${eur(r.sp)}</span><b class="${r.diff < 0 ? 'neg' : 'pos'}">${r.diff < 0 ? 'sforato ' : (r.key === mk(now2.getFullYear(), now2.getMonth()) ? 'restano ' : 'avanzato ')}${eur(Math.abs(r.diff))}</b></div>`).join('')}</div>
     <div class="actions"><button type="button" class="btn sec" id="vdClose">Chiudi</button><button type="button" class="btn pri" id="vdTx">Vedi le spese</button></div>`;
   $('sheet').hidden = $('sbg').hidden = false; $('sheet').onsubmit = null;
   $('vdClose').onclick = closeSheet;
@@ -2204,7 +2204,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.5';
+const APP_VER = '2026-10-10.6';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
