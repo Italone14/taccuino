@@ -1040,18 +1040,18 @@ const I = {
 };
 // [icona, colore]
 const CAT = {
-  'Ristorante':['fork','#b494ea'],'Spesa':['cart','#7fc4a0'],'Viaggi':['plane','#5b9bef'],'Vacanze':['sun','#f0b13d'],'Trasferte':['brief','#6f86c9'],
-  'Regalo':['gift','#a07a50'],'Compleanno':['gift','#c98a5c'],'Arturo':['heart','#ec6f9e'],'Vestiti':['shirt','#d9827a'],'Maglie Calcio':['shirt','#a072e6'],
-  'Trasporti':['bus','#ef5a4f'],'Moto':['moto','#d4573f'],'Benzina':['fuel','#c96a3a'],'Auto':['car','#bf5d4a'],'Assicurazione':['shield','#7f8794'],
-  'Shopping Vario':['basket','#9fbdb2'],'Online':['bag','#86a9a0'],'Libri':['book','#c6a46e'],'Stampe Foto':['camera','#9aa0ad'],'Cancelleria':['pencil','#a7a07f'],
-  'Cura personale':['sparkle','#e991c0'],'Dentista':['tooth','#5fb7c9'],'Palestra':['dumbbell','#4fae7c'],'Integratori':['pill','#6fc29a'],'Sport':['ball','#3fa36c'],
-  'Tecnologia':['phone','#6c8cf0'],'App':['phone','#8a9cf2'],'Drone':['plane','#7b8de0'],
-  'Abbonamenti':['repeat','#ef5a4f'],'Abbonamenti annuali':['repeat','#c4473d'],'App e servizi':['repeat','#e38a6d'],
-  'Divertimento':['star','#f2c14e'],'Giochi':['game','#8d7be6'],'Giochi da Tavolo':['dice','#9d86d8'],'🎰':['dice','#c8a43d'],'CROAZIA':['sun','#4fb0c6'],'Juventus':['ball','#8b8f98'],
-  'Carte Pokemon':['cards','#e3c04f'],'Corsi':['cap','#5f9fd6'],'Università':['cap','#4a7fc2'],'YT':['play','#e5534b'],'Project':['folder','#9aa3b5'],
-  'Beneficenza':['give','#3fbf74'],'Canone conto':['bank','#7d8899'],'Investimenti':['pct','#a86fe0'],
-  'Vario':['dots','#8e9097'],'Pagamenti':['wallet','#8e9097'],'Contanti':['wallet','#9a9d86'],'P2P':['swap','#8e9097'],'Bonus':['tag','#c6a85a'],'Vendite':['tag','#5fb38a'],
-  'Stipendio':['wallet','#3fbf74'],'Rimborso':['swap','#6fb3d0'],'Trasferimento':['swap','#7a7d85'],
+  'Ristorante':['fork','#e68037'],'Spesa':['cart','#37e663'],'Viaggi':['plane','#379de6'],'Vacanze':['sun','#e6c337'],'Trasferte':['brief','#374fe6'],
+  'Regalo':['gift','#e637e6'],'Compleanno':['gift','#e637c3'],'Arturo':['heart','#e63777'],'Vestiti':['shirt','#8937e6'],'Maglie Calcio':['shirt','#6637e6'],
+  'Trasporti':['bus','#e63746'],'Moto':['moto','#e65a37'],'Benzina':['fuel','#e6a037'],'Auto':['car','#e63d37'],'Assicurazione':['shield','#6882b6'],
+  'Shopping Vario':['basket','#37e6cf'],'Online':['bag','#37e6ac'],'Libri':['book','#e68f37'],'Stampe Foto':['camera','#687fb6'],'Cancelleria':['pencil','#e0e637'],
+  'Cura personale':['sparkle','#e637a6'],'Dentista':['tooth','#37c9e6'],'Palestra':['dumbbell','#72e637'],'Integratori':['pill','#46e637'],'Sport':['ball','#37e646'],
+  'Tecnologia':['phone','#3737e6'],'App':['phone','#5437e6'],'Drone':['plane','#3783e6'],
+  'Abbonamenti':['repeat','#bb37e6'],'Abbonamenti annuali':['repeat','#cf37e6'],'App e servizi':['repeat','#a637e6'],
+  'Divertimento':['star','#e6cf37'],'Giochi':['game','#7d37e6'],'Giochi da Tavolo':['dice','#a037e6'],'🎰':['dice','#e6b237'],'CROAZIA':['sun','#37d8e6'],'Juventus':['ball','#968888'],
+  'Carte Pokemon':['cards','#e6d837'],'Corsi':['cap','#37ace6'],'Università':['cap','#3760e6'],'YT':['play','#e6373d'],'Project':['folder','#688fb6'],
+  'Beneficenza':['give','#37e68f'],'Canone conto':['bank','#6888b6'],'Investimenti':['pct','#9a37e6'],
+  'Vario':['dots','#968888'],'Pagamenti':['wallet','#b68f68'],'Contanti':['wallet','#95e637'],'P2P':['swap','#37bbe6'],'Bonus':['tag','#e6bb37'],'Vendite':['tag','#37e680'],
+  'Stipendio':['wallet','#37e680'],'Rimborso':['swap','#37c9e6'],'Trasferimento':['swap','#968888'],
 };
 Object.assign(I, {
   drone: 'M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M10.8 10.8L6.5 6.5M13.2 10.8l4.3-4.3M10.8 13.2l-4.3 4.3M13.2 13.2l4.3 4.3M3.5 5h6M14.5 5h6M3.5 19h6M14.5 19h6',
@@ -2210,7 +2210,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.9';
+const APP_VER = '2026-10-10.10';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
