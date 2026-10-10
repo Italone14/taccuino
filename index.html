@@ -917,6 +917,13 @@ html.dark body.light .bb-tot{border-top-color:#f1f1ef}
 html.dark body.light .pg-hero>b{color:#3ccf7f}html.dark body.light .pg-hero>b.neg,html.dark body.light .pg-row>b.neg{color:#ff7a66}
 html.dark body.light .pg-hero small b{color:#d6d8dc}
 html.dark body.light .pg-row{border-bottom-color:rgba(255,255,255,.07)}
+/* microfono + tastierino in fondo */
+.xmic{background:none!important;color:var(--ink)!important;padding:6px!important;display:grid;place-items:center}
+.xmic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.xmic.on{background:#ff3b30!important;color:#fff!important;border-radius:50%!important;animation:micp 1s ease-in-out infinite}
+@keyframes micp{50%{box-shadow:0 0 0 6px rgba(255,59,48,.25)}}
+.txe::after{content:none!important;display:none!important}
+.txe .keypad{margin-top:auto!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1784,6 +1791,18 @@ function parseSpoken(txt) {
   out.n = note ? note[0].toUpperCase() + note.slice(1) : '';
   return out;
 }
+let REC_ON = null;
+function startDictation() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, btn = $('xMic');
+  if (!SR) { const i = $('xAi'); i.focus(); toast('Tocca il microfono 🎤 della tastiera per dettare'); return; }
+  if (REC_ON) { try { REC_ON.stop(); } catch (e) {} return; }
+  const r = new SR(); REC_ON = r; r.lang = 'it-IT'; r.interimResults = true; r.maxAlternatives = 1; r.continuous = false;
+  btn.classList.add('on'); $('xAi').placeholder = 'Ti ascolto…';
+  r.onresult = ev => { let t = ''; for (const x of ev.results) t += x[0].transcript; $('xAi').value = t; S.ai = t; if (ev.results[ev.results.length - 1].isFinal) { try { r.stop(); } catch (e) {} } };
+  r.onerror = ev => { toast(ev.error === 'not-allowed' || ev.error === 'service-not-allowed' ? 'Consenti il microfono (Impostazioni iPhone → Safari) o usa quello della tastiera' : 'Non ho sentito bene: riprova'); };
+  r.onend = () => { REC_ON = null; const b = $('xMic'); if (b) b.classList.remove('on'); const i = $('xAi'); if (i) { i.placeholder = 'Scrivi o detta: 2,50 Trade Republic pranzo'; if (i.value.trim()) applySpoken(); } };
+  try { r.start(); } catch (e) { REC_ON = null; btn.classList.remove('on'); toast('Microfono non disponibile: usa quello della tastiera'); }
+}
 function applySpoken() {
   const inp = $('xAi'); if (!inp || !inp.value.trim()) return; const r = parseSpoken(inp.value);
   if (r.cents) S.cents = r.cents; if (r.t) { S.t = r.t; if (r.t !== 's') { S.sub = null; } } if (r.a) S.a = r.a; if (r.to) S.to = r.to; if ('c' in r && r.c) S.c = r.c; else if (r.t === 't') S.c = null;
@@ -1804,7 +1823,7 @@ function drawTxe() {
   el.innerHTML = `<div class="xinner">
     <div class="xtop"><button type="button" class="ib" id="xClose" aria-label="Chiudi">${SV('M6 6l12 12M18 6L6 18')}</button><b>${S.edit ? 'Modifica transazione' : 'Nuova transazione'}</b><button type="button" class="ib" id="xOk" aria-label="Salva">${SV('M5 12.5l4.5 4.5L19 7')}</button></div>
     <div class="types">${T.map(([k, l, p, c]) => `<button type="button" class="ty" data-t="${k}" aria-pressed="${S.t === k}"><svg viewBox="0 0 24 24" style="stroke:${c}"><path d="${p}"/></svg>${l}</button>`).join('')}</div>
-    <div class="xai"><span>✨</span><input id="xAi" type="text" enterkeyhint="go" autocomplete="off" placeholder="Scrivi o detta: 2,50 Trade Republic pranzo" value="${esc(S.ai || '')}"><button type="button" id="xAiGo">Compila</button></div>
+    <div class="xai"><span>✨</span><input id="xAi" type="text" enterkeyhint="go" autocomplete="off" placeholder="Scrivi o detta: 2,50 Trade Republic pranzo" value="${esc(S.ai || '')}"><button type="button" id="xMic" class="xmic" aria-label="Detta la spesa"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><button type="button" id="xAiGo">Compila</button></div>
     <div class="bigamt num" id="xAmt">${fmtAmt(S.cents)}</div>
     <div class="xrows">${rows}${isSubTx() ? subRow() : txRow('rec', 'Ricorrente', (REC.find(r => r[0] === S.rec) || REC[0])[1])}
       <textarea id="xNote" enterkeyhint="done" placeholder="${isSubTx() ? 'Nome dell\'abbonamento (es. Claude, iCloud)' : 'Note'}" rows="1">${esc(S.n || '')}</textarea>
@@ -1820,6 +1839,7 @@ function drawTxe() {
   $('xAi').oninput = () => { S.ai = $('xAi').value; };
   $('xAi').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); $('xAi').blur(); applySpoken(); } };
   $('xAiGo').onclick = () => applySpoken();
+  $('xMic').onclick = () => startDictation();
   $('xAi').onfocus = () => $('txe').classList.add('typing');
   $('xAi').onblur = () => setTimeout(() => { const t = $('txe'); if (t && document.activeElement !== $('xNote')) t.classList.remove('typing'); }, 80);
   $('xNote').onfocus = () => { const t = $('txe'), top = t.scrollTop; t.classList.add('typing'); const keep = () => { t.scrollTop = top; window.scrollTo(0, 0); }; [0, 60, 200, 400].forEach(ms => setTimeout(keep, ms)); if (window.visualViewport) { const vv = () => keep(); visualViewport.addEventListener('resize', vv); visualViewport.addEventListener('scroll', vv); $('xNote').addEventListener('blur', () => { visualViewport.removeEventListener('resize', vv); visualViewport.removeEventListener('scroll', vv); }, { once: true }); } };
@@ -2130,7 +2150,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.2';
+const APP_VER = '2026-10-10.3';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
