@@ -924,6 +924,7 @@ html.dark body.light .pg-row{border-bottom-color:rgba(255,255,255,.07)}
 @keyframes micp{50%{box-shadow:0 0 0 6px rgba(255,59,48,.25)}}
 .txe::after{content:none!important;display:none!important}
 .txe .keypad{margin-top:auto!important}
+.pg-row .bbn small{opacity:.75}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1570,12 +1571,12 @@ function viewInsight() {
     <div><span>Entrate − spese</span><b style="color:${inc - sp < 0 ? '#c2412f' : 'inherit'}">${eur0(inc - sp)}</b><small>obiettivo ${eur0(SAVING_GOAL)}</small></div>
   </div>`;
   // budget
-  let pB = `<section class="r-card"><div class="r-head"><h2>Budget per voce</h2><span>${eur0(B.spent)} spesi di ${eur0(B.limit)}</span></div>
+  let pB = `<section class="r-card"><div class="r-head"><h2>Budget</h2><span>quanto ti resta per voce</span></div>
     ${!(key < PIGGY_START()) && key > PIGGY_START() ? `<p class="r-note" style="margin:0 0 6px">Qui vedi solo il budget di questo mese. Quanto hai davvero a disposizione, contando anche quello che hai messo da parte, è nel <button type="button" class="r-anchor" data-itab="salv">Salvadanaio</button>.</p>` : ''}
-    <div class="bb-list">${VAR().map(v => { const s2 = B.spentV[v.k] || 0, l = v.limit - s2, p = Math.min(100, s2 / Math.max(v.limit, .01) * 100), c0 = v.cats[0] || 'Vario', col = l < 0 ? '#ff5a4a' : ((customCat(c0) || {}).color || (CAT[c0] || [0, '#8e9097'])[1]);
-      return `<div class="bb"><div class="bbt">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur(s2)} di ${eur(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? eur(-l) + ' sforato' : eur(l) + ' restano'}</b></div><div class="bbar"><i style="width:${p}%;background:${col}"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div>`; }).join('')}
-    <div class="bb bb-tot"><div class="bbt"><span class="bbn">Totale variabili<small>${eur(B.spent)} di ${eur(B.limit)}</small></span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? eur(-B.left) + ' sforato' : eur(B.left) + ' restano'}</b></div><div class="bbar"><i style="width:${Math.min(100, B.spent / Math.max(B.limit, .01) * 100)}%;background:var(--acc,#6b4eff)"></i>${B.isNow ? `<em style="left:${B.day / B.dIn * 100}%"></em>` : ''}</div></div></div>
-    ${B.isNow ? `<p class="r-note">La lineetta su ogni barra è il punto in cui dovresti essere oggi spendendo in modo regolare (oggi è il giorno ${B.day} di ${B.dIn}, quindi al ${Math.round(B.day / B.dIn * 100)}% del mese). Barra prima della lineetta: sei in linea. Barra oltre: stai spendendo più in fretta del previsto.</p>` : ''}
+    <div class="pg-hero"><span>${B.isNow ? 'Puoi ancora spendere' : 'Ti è rimasto'}</span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? '−' : ''}${eur(Math.abs(B.left))}</b>
+      <small>${eur0(B.spent)} su ${eur0(B.limit)} di spese variabili${B.isNow && B.left > 0 ? ` · ${eur(B.left / B.daysLeft)} al giorno` : ''}</small></div>
+    <div class="bb-list">${VAR().map(v => ({ v, s2: B.spentV[v.k] || 0 })).map(x => ({ ...x, l: x.v.limit - x.s2 })).sort((a, b) => b.l - a.l).map(({ v, s2, l }) => { const c0 = v.cats[0] || 'Vario';
+      return `<div class="pg-row">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur0(s2)} su ${eur0(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? '−' : ''}${eur(Math.abs(l))}</b></div>`; }).join('')}</div>
     <div class="r-sub">Spese fisse</div>
     <table class="r-tbl"><tbody>${FIX().map(f => { const s2 = B.spentF[f.k] || 0, done = s2 >= f.amount - .01; return `<tr><td>${esc(f.name)} <small>${esc(f.note || '')}</small></td><td>${eur(s2)} <span class="r-dim2">di ${eur(f.amount)}</span><br>${done ? '<span class="r-ok">pagato</span>' : s2 > 0 ? '<span class="r-part">in parte</span>' : '<span class="r-no">da pagare</span>'}</td></tr>`; }).join('')}</tbody></table>
     <button type="button" class="r-link" id="editBudget">Modifica i limiti</button></section>`;
@@ -2150,7 +2151,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-10.3';
+const APP_VER = '2026-10-10.4';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
