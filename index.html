@@ -858,6 +858,14 @@ html.rows-dash .sw .tx{background:var(--bg)!important}
 html.rows-dash .crow:active,html.rows-dash .tx:active{box-shadow:none!important}
 html.rows-dash .m-day{margin-top:26px!important}
 html.rows-dash .k-row,html.rows-dash .k-main{background:none!important}
+/* tema scuro: sfondo grigio scuro come i riquadri, niente nero */
+html.dark body:not(.light){--bg:#1c1c1e!important;--card:#262629!important;--bg-2:#2c2c2f!important;background:#1c1c1e!important}
+html.dark{background:#1c1c1e!important}
+html.dark body:not(.light) .tabbar{background:#1c1c1e!important}
+html.dark body:not(.light) .topbar{background:#1c1c1e!important}
+html.dark body:not(.light) .sw .tx{background:#1c1c1e!important}
+html.dark body.light,html.dark body.light .topbar{background:#1c1c1e!important}
+html.dark body.light{--bg:#1c1c1e!important;--card:#262629!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1613,14 +1621,14 @@ function saldoSpark(total) {
 /* ---------- tema chiaro / scuro ---------- */
 function themePref() { let v = null; try { v = localStorage.getItem('tac-theme'); } catch (e) {} return v || (window.CONF && CONF.ui && CONF.ui.theme) || 'light'; }
 const darkMQ = matchMedia('(prefers-color-scheme: dark)');
-function applyTheme() { const p = themePref(), dark = p === 'dark' || (p === 'auto' && darkMQ.matches); document.documentElement.classList.toggle('dark', dark); if (document.body && document.body.classList.contains('light')) document.documentElement.style.background = dark ? '#111214' : '#f4f4f0'; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? '#111214' : '#f7f5f1'; }
+function applyTheme() { const p = themePref(), dark = p === 'dark' || (p === 'auto' && darkMQ.matches); document.documentElement.classList.toggle('dark', dark); if (document.body && document.body.classList.contains('light')) document.documentElement.style.background = dark ? '#1c1c1e' : '#f4f4f0'; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? '#1c1c1e' : '#f7f5f1'; }
 function setTheme(p) { try { localStorage.setItem('tac-theme', p); } catch (e) {} applyTheme(); saveUi({ theme: p }); }
 function saveUi(patch) { try { if (typeof db !== 'undefined' && db) { CONF = { ...CONF, ui: { ...(CONF.ui || {}), ...patch } }; db.doc('config/app').set(CONF); } } catch (e) {} }
 darkMQ.addEventListener && darkMQ.addEventListener('change', applyTheme);
 applyTheme();
 
 function render() {
-  _cache = null; document.body.classList.toggle('light', tab === 'insight'); document.documentElement.style.background = tab === 'insight' ? (document.documentElement.classList.contains('dark') ? '#111214' : '#f4f4f0') : ''; setTop();
+  _cache = null; document.body.classList.toggle('light', tab === 'insight'); document.documentElement.style.background = tab === 'insight' ? (document.documentElement.classList.contains('dark') ? '#1c1c1e' : '#f4f4f0') : ''; setTop();
   const v = $('view');
   if (render._t !== tab) { v.style.animation = 'none'; void v.offsetWidth; v.style.animation = ''; render._t = tab; }
   v.innerHTML = tab === 'home' ? viewHome() : tab === 'tx' ? viewTx() : tab === 'conti' ? viewConti() : viewInsight();
