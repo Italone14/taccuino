@@ -886,6 +886,11 @@ html.dark body.light .bbt b.neg{color:#ff7a66}
 html.dark body.light .bbar{background:#2c2c2f}
 html.dark body.light .bbar em{background:#fff;opacity:.7}
 html.dark body.light .bb-tot{border-top-color:#f1f1ef}
+/* occhio per nascondere il saldo */
+.h-saldo span{display:inline-flex!important;align-items:center;gap:6px}
+.eye{border:0;background:none;padding:4px;margin:-4px 0;color:var(--muted);cursor:pointer;display:inline-grid;place-items:center}
+.eye svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hid{letter-spacing:.06em!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1204,7 +1209,7 @@ function viewHome() {
   const col = B.left < 0 ? 'var(--bad)' : paceDiff > B.limit * .08 ? 'var(--warn)' : 'var(--pink)';
   return `
   <div class="h-sum">
-    <div class="h-saldo"><span>${P.acc ? 'Saldo ' + esc(P.acc) : 'Saldo'}</span><b class="num ${saldo >= 0 ? 'pos-saldo' : ''}" data-count="${saldo}">${eur(saldo)}</b></div>
+    <div class="h-saldo"><span>${P.acc ? 'Saldo ' + esc(P.acc) : 'Saldo'}<button type="button" class="eye" id="eyeBtn" aria-label="${hidePref() ? 'Mostra il saldo' : 'Nascondi il saldo'}">${hidePref() ? EYE_OFF : EYE}</button></span><b class="num ${saldo >= 0 ? 'pos-saldo' : ''}${hidePref() ? ' hid' : ''}" data-count="${saldo}">${money(saldo)}</b></div>
     <div class="h-two">
       <div class="h-sp"><span>↓ Spese</span><b class="num">${eur(sumBy(sp, e => e.v))}</b></div>
       <div class="h-in"><span>↑ Entrate</span><b class="num">${eur(sumBy(inc, e => e.v))}</b></div>
@@ -1292,19 +1297,19 @@ function viewConti() {
   const isInv = a => accKind(a.name)[1] === 'Investimenti';
   const inv = sumBy(accs.filter(isInv), a => a.v), liq = sumBy(accs.filter(a => !isInv(a) && a.v > 0), a => a.v), debt = sumBy(accs.filter(a => !isInv(a) && a.v < 0), a => -a.v);
   const row = a => { const [em, kind, col] = accKind(a.name); const sub = a.unknown ? '<span class="warn">saldo da inserire</span>' : kind;
-    return `<div class="k-row" data-name="${esc(a.name)}">${accEdit ? `<span class="k-handle" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h14"/></svg></span>` : ''}<button type="button" class="k-main ${accEdit ? 'off' : 'k-open'}" data-acc="${esc(a.name)}" ${accEdit ? 'tabindex="-1"' : ''}>${accIcon(a.name)}<span class="k-txt"><span class="k-nm">${esc(a.name)}</span><span class="k-sub">${sub}</span></span><span class="k-amt">${eur(a.v)}</span></button>${accEdit ? `<span class="k-arrows"><button type="button" class="k-up" aria-label="Sposta su ${esc(a.name)}">↑</button><button type="button" class="k-dn" aria-label="Sposta giù ${esc(a.name)}">↓</button></span>` : ''}</div>`; };
+    return `<div class="k-row" data-name="${esc(a.name)}">${accEdit ? `<span class="k-handle" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h14"/></svg></span>` : ''}<button type="button" class="k-main ${accEdit ? 'off' : 'k-open'}" data-acc="${esc(a.name)}" ${accEdit ? 'tabindex="-1"' : ''}>${accIcon(a.name)}<span class="k-txt"><span class="k-nm">${esc(a.name)}</span><span class="k-sub">${sub}</span></span><span class="k-amt">${a.name === 'TR INVEST' ? money(a.v) : eur(a.v)}</span></button>${accEdit ? `<span class="k-arrows"><button type="button" class="k-up" aria-label="Sposta su ${esc(a.name)}">↑</button><button type="button" class="k-dn" aria-label="Sposta giù ${esc(a.name)}">↓</button></span>` : ''}</div>`; };
   const donut = () => { const a = Math.max(0, inv), b = Math.max(0, liq - debt), T = Math.max(1, a + b), R = 30, C = 2 * Math.PI * R, la = C * a / T; return `<svg class="v2-donut" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="${R}" fill="none" stroke="var(--c-blue)" stroke-width="12"/><circle cx="40" cy="40" r="${R}" fill="none" stroke="var(--acc)" stroke-width="12" stroke-dasharray="${la} ${C}" transform="rotate(-90 40 40)"/></svg>`; };
   const ALTRO = ['Contanti', 'Paypal', 'Postepay', 'Prestito'];
   const GROUPS = [['Conti correnti', a => !ALTRO.includes(a.name) && !['Carta di credito', 'Investimenti'].includes(accKind(a.name)[1])], ['Carte di credito', a => accKind(a.name)[1] === 'Carta di credito'], ['Investimenti', a => accKind(a.name)[1] === 'Investimenti'], ['Altro', a => ALTRO.includes(a.name)]];
-  if (V2() && !accEdit) return `<div class="nw"><span class="hl rose">Valore netto</span><div class="big num ${tot >= 0 ? 'pos-saldo' : ''}" data-count="${tot}">${eur(tot)}</div>
-    <div class="m-split"><span><i style="background:var(--pink)"></i>Investito ${eur0(inv)}</span><span><i style="background:#5b9bef"></i>Liquidità ${eur0(liq - debt)}</span></div><div class="m-bar"><i style="width:${Math.max(0, Math.min(100, inv / Math.max(1, tot) * 100))}%"></i></div></div>
+  if (V2() && !accEdit) return `<div class="nw"><span class="hl rose">Valore netto</span><div class="big num ${tot >= 0 ? 'pos-saldo' : ''}${hidePref() ? ' hid' : ''}" data-count="${tot}">${money(tot)}</div>
+    <div class="m-split"><span><i style="background:var(--pink)"></i>Investito ${money0(inv)}</span><span><i style="background:#5b9bef"></i>Liquidità ${money0(liq - debt)}</span></div><div class="m-bar"><i style="width:${Math.max(0, Math.min(100, inv / Math.max(1, tot) * 100))}%"></i></div></div>
     <div class="k-head"><h3>I tuoi conti</h3><button type="button" class="k-btn ghost" id="accEdit">Riordina</button></div>
     <div id="accList" hidden></div>
-    ${GROUPS.map(([g, f]) => { const L = shown.filter(f); if (!L.length) return ''; return `<div class="v2-gh"><span>${g}</span><b>${eur(sumBy(L, a => a.v))}</b></div><div class="k-list">${L.map(row).join('')}</div>`; }).join('')}
+    ${GROUPS.map(([g, f]) => { const L = shown.filter(f); if (!L.length) return ''; return `<div class="v2-gh"><span>${g}</span><b>${g === 'Investimenti' ? money(sumBy(L, a => a.v)) : eur(sumBy(L, a => a.v))}</b></div><div class="k-list">${L.map(row).join('')}</div>`; }).join('')}
     <div class="status" style="margin-top:14px">Tocca un conto per vedere i movimenti o correggere il saldo.</div>
     <div style="text-align:center;margin-top:8px"><button type="button" class="linkbtn" id="openSettings">Impostazioni: aggiungi conti e categorie</button></div>`;
-  return `<div class="nw"><span class="hl rose">Valore netto</span><div class="big num ${tot >= 0 ? 'pos-saldo' : ''}">${eur(tot)}</div>
-    <div class="m-split"><span><i style="background:var(--pink)"></i>Investito ${eur0(inv)}</span><span><i style="background:#5b9bef"></i>Liquidità ${eur0(liq - debt)}</span></div><div class="m-bar"><i style="width:${Math.max(0, Math.min(100, inv / Math.max(1, tot) * 100))}%"></i></div></div>
+  return `<div class="nw"><span class="hl rose">Valore netto</span><div class="big num ${tot >= 0 ? 'pos-saldo' : ''}${hidePref() ? ' hid' : ''}">${money(tot)}</div>
+    <div class="m-split"><span><i style="background:var(--pink)"></i>Investito ${money0(inv)}</span><span><i style="background:#5b9bef"></i>Liquidità ${money0(liq - debt)}</span></div><div class="m-bar"><i style="width:${Math.max(0, Math.min(100, inv / Math.max(1, tot) * 100))}%"></i></div></div>
     <div class="k-head"><h3>I tuoi conti</h3>${accEdit ? `<button type="button" class="k-btn ghost" id="accCancel">Annulla</button><button type="button" class="k-btn" id="accDone">Fatto</button>` : `<button type="button" class="k-btn ghost" id="accEdit">Riordina</button>`}</div>
     ${accEdit ? '<div class="status" style="margin:0 0 8px;text-align:left">Trascina dalle tre righe oppure usa le frecce, poi tocca Fatto.</div>' : ''}
     <div class="k-list${accEdit ? ' editing' : ''}" id="accList">${shown.map(row).join('')}</div>
@@ -1619,11 +1624,16 @@ function setBx(v, save) { try { localStorage.setItem('tac-bx', v); } catch (e) {
 setBx(bxPref());
 /* numeri che contano fino al valore */
 let countDone = false;
+function hidePref() { let v = null; try { v = localStorage.getItem('tac-hide'); } catch (e) {} if (v === null && window.CONF && CONF.ui && 'hide' in CONF.ui) v = CONF.ui.hide ? '1' : '0'; return v === '1'; }
+function setHide(h) { try { localStorage.setItem('tac-hide', h ? '1' : '0'); } catch (e) {} saveUi({ hide: !!h }); render(); }
+const HID = '•••••• €';
+const money = v => hidePref() ? HID : eur(v), money0 = v => hidePref() ? HID : eur0(v);
+const EYE = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>', EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.9 9.9 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 function countUp(root) {
   if (countDone || !V2() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   if (!root.querySelector('[data-count]')) return;
   countDone = true;
-  root.querySelectorAll('[data-count]').forEach(el => { const to = parseFloat(el.dataset.count); if (!isFinite(to)) return; const t0 = performance.now(), D2 = 500;
+  root.querySelectorAll('[data-count]:not(.hid)').forEach(el => { const to = parseFloat(el.dataset.count); if (!isFinite(to)) return; const t0 = performance.now(), D2 = 500;
     const step = t => { const k = Math.min(1, (t - t0) / D2), e = 1 - Math.pow(1 - k, 3); el.textContent = eur(to * e); if (k < 1) requestAnimationFrame(step); else el.textContent = eur(to); }; requestAnimationFrame(step); });
 }
 /* andamento del saldo negli ultimi 30 giorni */
@@ -1675,6 +1685,7 @@ function bind() {
   const eb = $('editBudget'); if (eb) eb.onclick = openBudgetEditor;
   const os = $('openSettings'); if (os) os.onclick = () => openSettings('main');
   const oc = $('openChk'); if (oc) oc.onclick = openCheck;
+  const eb2 = $('eyeBtn'); if (eb2) eb2.onclick = ev => { ev.stopPropagation(); setHide(!hidePref()); };
   const pr = $('piggyReset'); if (pr) pr.onclick = async () => { if (pr.dataset.sure !== '1') { pr.dataset.sure = '1'; pr.textContent = 'Tocca di nuovo: il salvadanaio torna a zero'; return; } try { await saveConf({ piggyStart: curKey() }); toast('Salvadanaio azzerato'); } catch (e) { toast('Non sono riuscito a salvare: riprova'); } };
   v.querySelectorAll('[data-tip]').forEach(r => { r.onpointerenter = r.onpointermove = ev => { const t = $('tip'); t.textContent = r.dataset.tip; t.style.left = Math.min(innerWidth - 150, ev.clientX + 10) + 'px'; t.style.top = (ev.clientY - 36) + 'px'; t.classList.add('on'); }; r.onpointerleave = () => $('tip').classList.remove('on'); });
 }
@@ -2105,7 +2116,7 @@ render();
     UNSUB.forEach(u => { try { u(); } catch (e) {} }); UNSUB = [];
     const meta = (k, s) => { SYNC[k] = { at: Date.now(), cache: !!(s.metadata && s.metadata.fromCache), pending: !!(s.metadata && s.metadata.hasPendingWrites) }; SYNC.err = null; if (!$('set').hidden && SET.view === 'sync') drawSettings(); };
     const failS = e => { SYNC.err = e && e.code || 'unavailable'; fail(e); if (!$('set').hidden) drawSettings(); };
-    UNSUB.push(db.doc('config/app').onSnapshot(s => { CONF = s.exists ? { ...s.data() } : {}; window.CONF = CONF; if (CONF.ui) { try { if (CONF.ui.theme) localStorage.setItem('tac-theme', CONF.ui.theme); if (CONF.ui.style) localStorage.setItem('tac-style', CONF.ui.style); if (CONF.ui.bx) localStorage.setItem('tac-bx', CONF.ui.bx); if (CONF.ui.rows) localStorage.setItem('tac-rows', CONF.ui.rows); } catch (e) {} applyTheme(); applyStyle(); setRows(rowPref()); document.documentElement.style.setProperty('--bx', bxPref() + 'px'); } Object.entries(ACC_REN).forEach(([o, n]) => { if (CONF.acc && CONF.acc[o] && !CONF.acc[n]) { CONF.acc = { ...CONF.acc, [n]: CONF.acc[o] }; } if (CONF.accOrder) CONF.accOrder = CONF.accOrder.map(x => x === o ? n : x); if (CONF.extraAcc) CONF.extraAcc = CONF.extraAcc.map(x => x === o ? n : x); }); meta('c', s); done('c'); }, failS));
+    UNSUB.push(db.doc('config/app').onSnapshot(s => { CONF = s.exists ? { ...s.data() } : {}; window.CONF = CONF; if (CONF.ui) { try { if (CONF.ui.theme) localStorage.setItem('tac-theme', CONF.ui.theme); if (CONF.ui.style) localStorage.setItem('tac-style', CONF.ui.style); if (CONF.ui.bx) localStorage.setItem('tac-bx', CONF.ui.bx); if (CONF.ui.rows) localStorage.setItem('tac-rows', CONF.ui.rows); if ('hide' in CONF.ui) localStorage.setItem('tac-hide', CONF.ui.hide ? '1' : '0'); } catch (e) {} applyTheme(); applyStyle(); setRows(rowPref()); document.documentElement.style.setProperty('--bx', bxPref() + 'px'); } Object.entries(ACC_REN).forEach(([o, n]) => { if (CONF.acc && CONF.acc[o] && !CONF.acc[n]) { CONF.acc = { ...CONF.acc, [n]: CONF.acc[o] }; } if (CONF.accOrder) CONF.accOrder = CONF.accOrder.map(x => x === o ? n : x); if (CONF.extraAcc) CONF.extraAcc = CONF.extraAcc.map(x => x === o ? n : x); }); meta('c', s); done('c'); }, failS));
     UNSUB.push(db.collection('storico').limit(200).onSnapshot(s => { HIST = {}; s.docs.forEach(d => { const x = d.data(); (x.tx || []).forEach(renAcc); HIST[d.id] = x; }); meta('h', s); done('h'); }, failS));
     UNSUB.push(db.collection('tx').limit(1000).onSnapshot(s => { NEWS = s.docs.map(d => renAcc({ id: d.id, ...d.data() })).filter(e => typeof e.v === 'number' && e.d); meta('n', s); done('n'); }, failS));
   };
