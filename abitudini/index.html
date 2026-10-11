@@ -184,6 +184,14 @@ textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500
 .fweek small { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; line-height: 1.3 }
 .fmini { margin-top: 8px; align-self: flex-start; border: 1.5px solid currentColor; background: transparent; color: inherit; font-size: 11px; font-weight: 800; padding: 7px 9px; border-radius: 0; min-height: 34px }
 .fseg { margin-bottom: 16px }
+.fuori { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: transparent; color: var(--muted); border: 2px dashed var(--line); padding: 14px 16px; font: inherit }
+.fuori span { display: flex; flex-direction: column; gap: 2px }
+.fuori b { font-size: 15px; font-weight: 800; color: var(--ink) }
+.fuori small { font-size: 12px; font-weight: 600 }
+.fuori[aria-pressed="true"] { border: 2px solid #5BC0EB; background: rgba(91,192,235,.14); color: #5BC0EB }
+.fuori[aria-pressed="true"] b { color: #5BC0EB }
+.peso .pval b { cursor: text }
+.peso .pval input { width: 100%; max-width: 190px; font: inherit; font-size: 50px; font-weight: 800; text-align: center; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); padding: 2px 4px; border-radius: 0 }
 .peso { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); padding: 18px 14px }
 .peso .pbtn { width: 64px; height: 64px; border-radius: 32px; border: 2.5px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-size: 34px; font-weight: 700; line-height: 1; display: grid; place-items: center; flex: none; touch-action: manipulation }
 .peso .pbtn:active { background: var(--ink); color: var(--paper) }
@@ -258,6 +266,8 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       <div class="label" style="margin-bottom: 12px">Abitudini</div>
       <div class="grid" id="grid" aria-label="Abitudini"></div>
     </section>
+
+    <button class="fuori" id="fuoriBtn" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="1.5"/><path d="M9 7.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2.5M3.5 12.5h17"/></svg><span><b>Fuori casa</b><small id="fuoriNote">Tocca se oggi eri fuori casa</small></span></button>
 
 
     <section class="panel" id="editPanel" hidden>
@@ -360,6 +370,16 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     </section>
 
     <div class="fweek" id="fWeek"></div>
+
+      <section style="margin-top: 22px">
+        <div class="label" style="margin-bottom: 12px">Bilancio calorie (mangiate − bruciate)</div>
+        <div class="seg" role="group" aria-label="Periodo del bilancio" style="margin-bottom: 12px">
+          <button id="bgSett" aria-pressed="true">Settimanale</button>
+          <button id="bgMese" aria-pressed="false">Mensile</button>
+        </div>
+        <div class="fchart" id="bChart"></div>
+        <div class="pstats" id="bStats"></div>
+      </section>
     </div>
 
     <div id="fViewPeso" hidden>
@@ -435,20 +455,21 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   let db = null;
   let editing = null;
   let tab = 'oggi';
-  let hMode = 'mese', fMode = 'sett', pMode = 'mese';
+  let hMode = 'mese', fMode = 'sett', pMode = 'mese', bMode = 'sett';
   const now = new Date();
   let hYear = now.getFullYear(), hMonth = now.getMonth();
 
   const LS = 'abitudini-giorni';
   function lsLoad() { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } }
   function lsSave() { try { localStorage.setItem(LS, JSON.stringify(days)); } catch (e) {} }
-  function prefLoad() { try { const p = JSON.parse(localStorage.getItem('abitudini-pref') || '{}'); if (p.tab) tab = p.tab; if (p.hMode) hMode = p.hMode; if (p.fMode) fMode = p.fMode; if (p.pMode) pMode = p.pMode; } catch (e) {} }
-  function prefSave() { try { localStorage.setItem('abitudini-pref', JSON.stringify({ tab, hMode, fMode, pMode })); } catch (e) {} }
+  function prefLoad() { try { const p = JSON.parse(localStorage.getItem('abitudini-pref') || '{}'); if (p.tab) tab = p.tab; if (p.hMode) hMode = p.hMode; if (p.fMode) fMode = p.fMode; if (p.pMode) pMode = p.pMode; if (p.bMode) bMode = p.bMode; } catch (e) {} }
+  function prefSave() { try { localStorage.setItem('abitudini-pref', JSON.stringify({ tab, hMode, fMode, pMode, bMode })); } catch (e) {} }
 
   function dayOf(k) {
     const d = days[k] || {};
     const o = { data: k, salute: Object.assign({}, d.salute || {}), manuali: Object.assign({}, d.manuali || {}) };
     if (typeof d.peso === 'number') o.peso = d.peso;
+    if (d.fuori === true) o.fuori = true;
     return o;
   }
   // No sgarri automatico: calorie mangiate (YAZIO) sotto il limite a fine giornata
@@ -534,6 +555,9 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     const s = streak();
     $('streak').innerHTML = s > 0 ? 'Serie: <b>' + s + (s === 1 ? ' giorno' : ' giorni') + '</b> con almeno ' + STREAK_MIN + ' su ' + OGGI.length : 'Arriva a ' + STREAK_MIN + ' su ' + OGGI.length + ' per iniziare una serie';
 
+    const fu = !!(days[selected] && days[selected].fuori);
+    $('fuoriBtn').setAttribute('aria-pressed', String(fu));
+    $('fuoriNote').textContent = fu ? 'Segnato: ' + (isToday ? 'oggi' : 'questo giorno') + ' eri fuori casa · tocca per togliere' : 'Tocca se ' + (isToday ? 'oggi' : 'quel giorno') + ' eri fuori casa';
     $('grid').innerHTML = OGGI.map((h) => {
       const p = progress(h, d), color = ringColor(p);
       return '<button class="tile' + (editing === h.id ? ' open' : '') + '" data-h="' + h.id + '" aria-pressed="' + (h.kind === 'manual' ? String(p >= 1) : 'false') + '">' +
@@ -771,6 +795,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       blk(F_BLUE, '#FFFFFF', mPassi ? nf(mPassi) : '–', 'Media passi<br>ultimi 7 giorni') +
       blk(F_YELLOW, '#111111', mAtt ? nf(mAtt) : '–', 'Media kcal attive<br>ultimi 7 giorni') +
       blk(F_ORANGE, '#FFFFFF', kmTot ? kmTot.toFixed(1).replace('.', ',') + ' km' : '0 km', 'Km di corsa<br>ultimi 7 giorni');
+    renderBilancio();
     renderPeso();
     $('fFoot').hidden = fMode === 'peso';
     $('fFoot').textContent = 'Bruciate = calorie attive + metabolismo basale. Le calorie mangiate arrivano da YAZIO tramite Salute: nei giorni senza pasti registrati il bilancio non è disponibile. Le medie escludono oggi.';
@@ -789,6 +814,42 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     ['calOggi', 'calFit'].forEach((id) => { const el = $(id); el.max = t; el.min = firstKey(); el.value = id === 'calOggi' ? selected : fSel; });
     $('todayPill').hidden = !((tab === 'oggi' && selected <= lim) || (tab === 'fitness' && fSel <= lim));
   }
+
+
+  // ---------- BILANCIO (deficit / surplus) ----------
+  function renderBilancio() {
+    $('bgSett').setAttribute('aria-pressed', String(bMode === 'sett'));
+    $('bgMese').setAttribute('aria-pressed', String(bMode === 'mese'));
+    const n = bMode === 'sett' ? 7 : 30, ks = [];
+    for (let i = n - 1; i >= 0; i--) ks.push(addDays(fSel, -i));
+    const rows = ks.map((k) => { const f = fit(k); return { k, d: f.cibo != null && f.att != null ? Math.round(f.cibo - (f.att + f.bas)) : null }; });
+    const vals = rows.filter((r) => r.d != null).map((r) => r.d);
+    const W = 340, H = 200, T = 22, B = 24, colW = W / n, bw = Math.min(30, colW * 0.7);
+    const m = Math.max(500, ...vals.map(Math.abs)) * 1.2, mid = T + (H - T - B) / 2, sc = (H - T - B) / 2 / m;
+    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Bilancio calorie per giorno">';
+    rows.forEach((r, i) => {
+      const cx = colW * i + colW / 2, x = cx - bw / 2;
+      if (r.d != null) {
+        const h = Math.max(2, Math.abs(r.d) * sc), y = r.d > 0 ? mid - h : mid, col = r.d > 0 ? '#FF6B6B' : '#4CD68A';
+        svg += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + col + '"></rect>';
+        if (n === 7) svg += '<text x="' + cx.toFixed(1) + '" y="' + (r.d > 0 ? y - 5 : y + h + 12).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="800" fill="' + col + '" font-family="Archivo, sans-serif">' + (r.d > 0 ? '+' : r.d < 0 ? '−' : '') + nf(Math.abs(r.d)) + '</text>';
+      } else if (n === 7) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (mid - 6) + '" text-anchor="middle" font-size="10" fill="#9C9CA3" font-family="Archivo, sans-serif">n.d.</text>';
+      }
+      const dd = fromKey(r.k);
+      if (n === 7 || i % 5 === 4 || i === n - 1) svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" font-weight="' + (r.k === fSel ? 800 : 600) + '" fill="' + (r.k === fSel ? '#F4F4F1' : '#9C9CA3') + '" font-family="Archivo, sans-serif">' + (n === 7 ? DAYS_SHORT[dd.getDay()] + ' ' : '') + dd.getDate() + '</text>';
+    });
+    svg += '<line x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '" stroke="#F4F4F1" stroke-width="2"></line>';
+    $('bChart').innerHTML = svg + '</svg>';
+    const st = (v, l, c) => '<div><b' + (c ? ' style="color:' + c + '"' : '') + '>' + v + '</b><small>' + l + '</small></div>';
+    if (vals.length) {
+      const tot = vals.reduce((a, b) => a + b, 0), media = Math.round(tot / vals.length), def = vals.filter((v) => v <= 0).length;
+      const sg = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + nf(Math.abs(v));
+      $('bStats').innerHTML = st(sg(media), 'media al giorno', media > 0 ? '#FF6B6B' : '#4CD68A') + st(sg(tot), 'totale', tot > 0 ? '#FF6B6B' : '#4CD68A') + st(def + '/' + vals.length, 'giorni in deficit');
+    } else $('bStats').innerHTML = '<div style="grid-column:1/-1"><small>Nessun giorno con calorie mangiate in questo periodo</small></div>';
+  }
+  $('bgSett').addEventListener('click', () => { bMode = 'sett'; prefSave(); render(); });
+  $('bgMese').addEventListener('click', () => { bMode = 'mese'; prefSave(); render(); });
 
   // ---------- PESO ----------
   const fmtKg = (v) => v.toFixed(1).replace('.', ',');
@@ -814,12 +875,12 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       $('pVal').textContent = fmtKg(v); $('pVal').className = '';
       const diff = prev ? Math.round((v - prev.v) * 10) / 10 : null;
       $('pNote').textContent = 'kg' + (diff != null ? ' · ' + (diff > 0 ? '+' : diff < 0 ? '−' : '±') + fmtKg(Math.abs(diff)) + ' dall\'ultima volta' : '');
-      $('pInfo').textContent = 'Salvato. Tocca + o − per correggere.';
+      $('pInfo').textContent = 'Salvato. Per correggere tocca + o −, oppure il numero per scriverlo.';
       $('pDel').hidden = false;
     } else {
       $('pVal').textContent = prev ? fmtKg(prev.v) : '80,0'; $('pVal').className = 'unset';
       $('pNote').textContent = 'kg · non ancora registrato';
-      $('pInfo').textContent = prev ? 'Parte dall\'ultimo peso (' + fromKey(prev.k).getDate() + ' ' + MONTHS[fromKey(prev.k).getMonth()].slice(0, 3) + '). Tocca + o − per salvarlo.' : 'Tocca + o − per salvarlo.';
+      $('pInfo').textContent = prev ? 'Parte dall\'ultimo peso (' + fromKey(prev.k).getDate() + ' ' + MONTHS[fromKey(prev.k).getMonth()].slice(0, 3) + '). Tocca + o −, oppure il numero per scriverlo.' : 'Tocca + o −, oppure il numero per scriverlo.';
       $('pDel').hidden = true;
     }
     // grafico
@@ -867,6 +928,25 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   $('pMeno').addEventListener('click', () => { const v = pesoOf(fSel); setPeso(v != null ? v - 0.1 : pesoBase()); });
   $('pDel').addEventListener('click', () => { clearTimeout(pesoTimer); const d = dayOf(fSel); delete d.peso; save(fSel, d); });
 
+  $('fuoriBtn').addEventListener('click', () => { const d = dayOf(selected); if (d.fuori) delete d.fuori; else d.fuori = true; save(selected, d); });
+  // peso: tocco sul numero = scrivo con la tastiera
+  $('pVal').addEventListener('click', () => {
+    const box = $('pVal').parentNode; if (box.querySelector('input')) return;
+    const cur = pesoOf(fSel) != null ? pesoOf(fSel) : pesoBase();
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'decimal'; inp.value = fmtKg(cur); inp.setAttribute('aria-label', 'Peso in kg');
+    $('pVal').hidden = true; box.insertBefore(inp, $('pVal'));
+    inp.focus(); inp.select();
+    let done = false;
+    const fine = (ok) => {
+      if (done) return; done = true;
+      const v = parseFloat(inp.value.replace(',', '.'));
+      inp.remove(); $('pVal').hidden = false;
+      if (ok && isFinite(v) && v >= 30 && v <= 250) setPeso(v); else renderPeso();
+    };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fine(true); if (e.key === 'Escape') fine(false); });
+    inp.addEventListener('blur', () => fine(true));
+  });
   function pickDay(v) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
     const t = todayKey(); return v > t ? t : v;
