@@ -50,9 +50,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px }
 .top h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1 }
 #dayTitle { font-family: 'Fredoka', 'Archivo', system-ui, sans-serif; font-weight: 700; font-size: 46px; letter-spacing: 0; color: #FFC93C }
+#dayTitle.long { font-size: 32px; white-space: nowrap }
+#viewOggi .top > div:first-child { min-width: 0 }
+#viewOggi .navs { flex: none }
 .top h1.center { font-size: 30px; text-align: center; flex: 1 }
 .top .label { margin-bottom: 6px }
 .navs { display: flex; gap: 8px }
+.calbtn { position: relative; overflow: hidden; cursor: pointer }
+.calbtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; font-size: 16px; cursor: pointer }
+.todaypill { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + max(4px, calc(env(safe-area-inset-bottom, 0px) - 18px))); z-index: 6; display: inline-flex; align-items: center; gap: 8px; background: #FFC93C; color: #111111; border: 0; border-radius: 999px; padding: 12px 18px; font: inherit; font-size: 14px; font-weight: 800; box-shadow: 0 6px 18px rgba(0,0,0,.35) }
+.todaypill[hidden] { display: none }
 .icon-btn { width: 44px; height: 44px; border-radius: 22px; border: 2px solid var(--ink); background: var(--paper); display: grid; place-items: center; flex: none }
 .icon-btn:disabled { opacity: .25; cursor: default }
 
@@ -211,6 +218,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
         <h1 id="dayTitle">Oggi</h1>
       </div>
       <div class="navs">
+        <label class="icon-btn calbtn" aria-label="Scegli un giorno"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><input type="date" id="calOggi"></label>
         <button class="icon-btn" id="prevBtn" aria-label="Giorno precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg></button>
         <button class="icon-btn" id="nextBtn" aria-label="Giorno successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"></polyline></svg></button>
       </div>
@@ -219,7 +227,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     <nav class="week" id="week" aria-label="Ultimi 7 giorni"></nav>
 
     <section aria-live="polite">
-      <div class="label">Riepilogo · oggi</div>
+      <div class="label" id="sumLbl">Riepilogo · oggi</div>
       <div class="summary">
         <div id="bigRing"></div>
         <div class="sum-text">
@@ -289,6 +297,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
         <div class="label" id="fDate">…</div>
         <h1 class="center" style="font-size: 30px">Fitness</h1>
       </div>
+      <label class="icon-btn calbtn" aria-label="Scegli un giorno"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><input type="date" id="calFit"></label>
       <button class="icon-btn" id="fNext" aria-label="Giorno successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"></polyline></svg></button>
     </header>
 
@@ -335,6 +344,8 @@ body { padding-top: env(safe-area-inset-top, 0px) }
 
   <div class="status" id="status"></div>
 </div>
+
+<button class="todaypill" id="todayPill" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Torna a oggi</button>
 
 <nav class="tabbar" aria-label="Sezioni">
   <div class="in">
@@ -457,6 +468,8 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   function renderOggi() {
     const d = dayOf(selected), date = fromKey(selected), isToday = selected === todayKey();
     $('dayTitle').textContent = isToday ? 'Oggi' : (selected === addDays(todayKey(), -1) ? 'Ieri' : WEEKDAYS[date.getDay()]);
+    $('dayTitle').classList.toggle('long', $('dayTitle').textContent.length > 4);
+    $('sumLbl').textContent = isToday ? 'Riepilogo · oggi' : 'Riepilogo del giorno';
     $('dateLbl').textContent = WEEKDAYS[date.getDay()] + ' · ' + date.getDate() + ' ' + MONTHS[date.getMonth()];
     $('nextBtn').disabled = isToday;
 
@@ -720,7 +733,18 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     $('tabFitness').setAttribute('aria-pressed', String(tab === 'fitness'));
     $('tabStorico').setAttribute('aria-pressed', String(tab === 'storico'));
     if (tab === 'oggi') renderOggi(); else if (tab === 'fitness') renderFitness(); else renderStorico();
+    // calendario e "Torna a oggi" (solo se sei almeno una settimana indietro)
+    const t = todayKey(), lim = addDays(t, -7);
+    ['calOggi', 'calFit'].forEach((id) => { const el = $(id); el.max = t; el.min = firstKey(); el.value = id === 'calOggi' ? selected : fSel; });
+    $('todayPill').hidden = !((tab === 'oggi' && selected <= lim) || (tab === 'fitness' && fSel <= lim));
   }
+  function pickDay(v) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+    const t = todayKey(); return v > t ? t : v;
+  }
+  $('calOggi').addEventListener('change', (e) => { const v = pickDay(e.target.value); if (v) { selected = v; closeEdit(); render(); } });
+  $('calFit').addEventListener('change', (e) => { const v = pickDay(e.target.value); if (v) { fSel = v; render(); } });
+  $('todayPill').addEventListener('click', () => { if (tab === 'oggi') { selected = todayKey(); closeEdit(); } else fSel = todayKey(); render(); window.scrollTo(0, 0); });
 
   async function save(k, body) {
     days[k] = body;
