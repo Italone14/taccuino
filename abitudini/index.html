@@ -119,7 +119,7 @@ textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500
 .block.yellow { background: var(--yellow); color: var(--dark) }
 .block.orange { background: var(--orange); color: #FFFFFF }
 
-.mgrid { background: var(--surface); padding: 10px 8px; display: grid; grid-template-columns: 40px repeat(var(--n), minmax(0, 1fr)) 38px; column-gap: 3px; row-gap: 3px; align-items: center }
+.mgrid { background: var(--surface); padding: 10px 8px; display: grid; grid-template-columns: 40px repeat(var(--n), minmax(0, 1fr)) 30px 38px; column-gap: 3px; row-gap: 3px; align-items: center }
 .mgrid .hname { height: 100px; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 6px }
 .mgrid .hname span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; white-space: nowrap }
 .mgrid .hname i { display: block; width: 100%; height: 4px; margin-top: 4px }
@@ -183,6 +183,22 @@ textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500
 .fweek b { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
 .fweek small { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; line-height: 1.3 }
 .fmini { margin-top: 8px; align-self: flex-start; border: 1.5px solid currentColor; background: transparent; color: inherit; font-size: 11px; font-weight: 800; padding: 7px 9px; border-radius: 0; min-height: 34px }
+.fseg { margin-bottom: 16px }
+.peso { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); padding: 18px 14px }
+.peso .pbtn { width: 64px; height: 64px; border-radius: 32px; border: 2.5px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-size: 34px; font-weight: 700; line-height: 1; display: grid; place-items: center; flex: none; touch-action: manipulation }
+.peso .pbtn:active { background: var(--ink); color: var(--paper) }
+.peso .pval { text-align: center; flex: 1; min-width: 0 }
+.peso .pval b { display: block; font-size: 54px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -1px }
+.peso .pval b.unset { color: var(--soft) }
+.peso .pval small { display: block; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--muted) }
+.prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; min-height: 36px }
+.prow .pinfo { font-size: 12px; color: var(--muted); font-weight: 600 }
+.prow button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; text-decoration: underline; padding: 8px 0 }
+.pstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px }
+.pstats div { background: var(--surface); padding: 10px; display: flex; flex-direction: column; gap: 3px }
+.pstats b { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums }
+.pstats small { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.mgrid .pcell { font-size: 9px; font-weight: 800; text-align: center; color: #E9E3D3; font-variant-numeric: tabular-nums; white-space: nowrap }
 .fnote { font-size: 12px; color: var(--muted); line-height: 1.45 }
 @media (prefers-reduced-motion: reduce) { .fblk { transition: none } }
 .tabbar button { border: 0; background: transparent; color: var(--soft); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; min-height: 50px; justify-content: center }
@@ -328,9 +344,14 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       <div class="fsport" id="fRunBox"><span class="fsl">Corsa</span><b id="fRun">–</b><small id="fRunNote"></small></div>
     </div>
 
+    <div class="seg fseg" role="group" aria-label="Vista">
+      <button id="fsSett" aria-pressed="true">Ultimi 7 giorni</button>
+      <button id="fsPeso" aria-pressed="false">Peso</button>
+    </div>
+
+    <div id="fViewSett">
     <section>
-      <div class="label" style="margin-bottom: 12px">Ultimi 7 giorni</div>
-      <div class="fchart" id="fChart"></div>
+            <div class="fchart" id="fChart"></div>
       <div class="flegend" style="margin-top: 10px">
         <span><i class="sq" style="background: #4A86F0"></i>Basale</span>
         <span><i class="sq" style="background: #EE6A3C"></i>Attive</span>
@@ -339,6 +360,28 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     </section>
 
     <div class="fweek" id="fWeek"></div>
+    </div>
+
+    <div id="fViewPeso" hidden>
+      <section>
+        <div class="label" style="margin-bottom: 12px" id="pLbl">Peso di oggi</div>
+        <div class="peso">
+          <button class="pbtn" id="pMeno" aria-label="Meno 0,1 kg">−</button>
+          <div class="pval"><b id="pVal">–</b><small id="pNote">kg</small></div>
+          <button class="pbtn" id="pPiu" aria-label="Più 0,1 kg">+</button>
+        </div>
+        <div class="prow"><span class="pinfo" id="pInfo"></span><button id="pDel" hidden>Togli il peso di questo giorno</button></div>
+      </section>
+      <section style="margin-top: 22px">
+        <div class="label" style="margin-bottom: 12px">Andamento</div>
+        <div class="seg" role="group" aria-label="Periodo del grafico" style="margin-bottom: 12px">
+          <button id="pgMese" aria-pressed="true">Mensile</button>
+          <button id="pgAnno" aria-pressed="false">Annuale</button>
+        </div>
+        <div class="fchart" id="pChart"></div>
+        <div class="pstats" id="pStats"></div>
+      </section>
+    </div>
     <p class="fnote" id="fFoot"></p>
   </div>
 
@@ -392,19 +435,21 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   let db = null;
   let editing = null;
   let tab = 'oggi';
-  let hMode = 'mese';
+  let hMode = 'mese', fMode = 'sett', pMode = 'mese';
   const now = new Date();
   let hYear = now.getFullYear(), hMonth = now.getMonth();
 
   const LS = 'abitudini-giorni';
   function lsLoad() { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } }
   function lsSave() { try { localStorage.setItem(LS, JSON.stringify(days)); } catch (e) {} }
-  function prefLoad() { try { const p = JSON.parse(localStorage.getItem('abitudini-pref') || '{}'); if (p.tab) tab = p.tab; if (p.hMode) hMode = p.hMode; } catch (e) {} }
-  function prefSave() { try { localStorage.setItem('abitudini-pref', JSON.stringify({ tab, hMode })); } catch (e) {} }
+  function prefLoad() { try { const p = JSON.parse(localStorage.getItem('abitudini-pref') || '{}'); if (p.tab) tab = p.tab; if (p.hMode) hMode = p.hMode; if (p.fMode) fMode = p.fMode; if (p.pMode) pMode = p.pMode; } catch (e) {} }
+  function prefSave() { try { localStorage.setItem('abitudini-pref', JSON.stringify({ tab, hMode, fMode, pMode })); } catch (e) {} }
 
   function dayOf(k) {
     const d = days[k] || {};
-    return { data: k, salute: Object.assign({}, d.salute || {}), manuali: Object.assign({}, d.manuali || {}) };
+    const o = { data: k, salute: Object.assign({}, d.salute || {}), manuali: Object.assign({}, d.manuali || {}) };
+    if (typeof d.peso === 'number') o.peso = d.peso;
+    return o;
   }
   // No sgarri automatico: calorie mangiate (YAZIO) sotto il limite a fine giornata
   const CIBO_LIMITE = 1820;
@@ -518,6 +563,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     const counts = HABITS.map(() => 0);
     let doneTotal = 0, elapsed = 0, perfect = 0, best = 0, run = 0;
     let html = '<div></div>' + HABITS.map((h) => '<div class="hname"><div style="display:flex;flex-direction:column;align-items:center;width:100%"><span style="color:' + h.color + '">' + h.name + '</span><i style="background:' + h.color + '"></i></div></div>').join('') +
+      '<div class="hname"><div style="display:flex;flex-direction:column;align-items:center;width:100%"><span style="color:#E9E3D3">Peso</span><i style="background:#E9E3D3"></i></div></div>' +
       '<div class="score label" style="align-self:end;padding-bottom:6px;font-size:9px">tot</div>';
     for (let d = 1; d <= nDays; d++) {
       const date = new Date(hYear, hMonth, d), k = keyOf(date), wd = date.getDay();
@@ -533,10 +579,13 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       if (counted) { run = score >= STREAK_MIN ? run + 1 : 0; best = Math.max(best, run); }
       const numColor = (wd === 0 || wd === 6) ? 'var(--soft)' : 'var(--ink)';
       const scColor = isPerfect(k) ? 'var(--ok)' : score >= STREAK_MIN ? 'var(--ink)' : 'var(--soft)';
+      const pk = pesoOf(k);
       html += '<div class="day' + (future ? ' fut' : '') + (k === today ? ' today' : '') + '"><b style="color:' + numColor + '">' + d + '</b><i>' + DAYS_SHORT[wd] + '</i></div>' + cells +
+        '<span class="pcell">' + (pk != null ? fmtKg(pk) : '') + '</span>' +
         '<span class="score' + (future ? ' fut' : '') + '" style="color:' + scColor + '">' + (future || !days[k] ? '' : score + '/' + HABITS.length) + '</span>';
     }
-    html += '<div class="foot lbl">% mese</div>' + HABITS.map((h, i) => '<div class="foot">' + (elapsed ? Math.round(counts[i] / elapsed * 100) : '–') + '</div>').join('') + '<div class="foot"></div>';
+    const pm = pesiOrdinati().filter((x) => x.k.slice(0, 7) === keyOf(new Date(hYear, hMonth, 1)).slice(0, 7));
+    html += '<div class="foot lbl">% mese</div>' + HABITS.map((h, i) => '<div class="foot">' + (elapsed ? Math.round(counts[i] / elapsed * 100) : '–') + '</div>').join('') + '<div class="foot" style="font-size:9px">' + (pm.length ? fmtKg(pm[pm.length - 1].v) : '') + '</div><div class="foot"></div>';
     const g = $('mGrid');
     g.style.setProperty('--n', HABITS.length);
     g.innerHTML = html;
@@ -722,6 +771,8 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       blk(F_BLUE, '#FFFFFF', mPassi ? nf(mPassi) : '–', 'Media passi<br>ultimi 7 giorni') +
       blk(F_YELLOW, '#111111', mAtt ? nf(mAtt) : '–', 'Media kcal attive<br>ultimi 7 giorni') +
       blk(F_ORANGE, '#FFFFFF', kmTot ? kmTot.toFixed(1).replace('.', ',') + ' km' : '0 km', 'Km di corsa<br>ultimi 7 giorni');
+    renderPeso();
+    $('fFoot').hidden = fMode === 'peso';
     $('fFoot').textContent = 'Bruciate = calorie attive + metabolismo basale. Le calorie mangiate arrivano da YAZIO tramite Salute: nei giorni senza pasti registrati il bilancio non è disponibile. Le medie escludono oggi.';
   }
 
@@ -738,6 +789,84 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     ['calOggi', 'calFit'].forEach((id) => { const el = $(id); el.max = t; el.min = firstKey(); el.value = id === 'calOggi' ? selected : fSel; });
     $('todayPill').hidden = !((tab === 'oggi' && selected <= lim) || (tab === 'fitness' && fSel <= lim));
   }
+
+  // ---------- PESO ----------
+  const fmtKg = (v) => v.toFixed(1).replace('.', ',');
+  function pesoOf(k) { const d = days[k]; return d && typeof d.peso === 'number' ? d.peso : null; }
+  function pesiOrdinati() { return Object.keys(days).filter((k) => pesoOf(k) != null).sort().map((k) => ({ k, v: pesoOf(k) })); }
+  function ultimoPesoPrima(k) { const a = pesiOrdinati().filter((x) => x.k <= k); return a.length ? a[a.length - 1] : null; }
+  let pesoTimer = null;
+  function setPeso(v) {
+    v = Math.round(Math.max(30, Math.min(250, v)) * 10) / 10;
+    const d = dayOf(fSel); d.peso = v; days[fSel] = d; renderPeso();
+    clearTimeout(pesoTimer); pesoTimer = setTimeout(() => save(fSel, dayOf(fSel)), 600);
+  }
+  function renderPeso() {
+    $('fsSett').setAttribute('aria-pressed', String(fMode === 'sett'));
+    $('fsPeso').setAttribute('aria-pressed', String(fMode === 'peso'));
+    $('fViewSett').hidden = fMode !== 'sett';
+    $('fViewPeso').hidden = fMode !== 'peso';
+    if (fMode !== 'peso') return;
+    const isToday = fSel === todayKey(), dd = fromKey(fSel);
+    const v = pesoOf(fSel), prev = ultimoPesoPrima(addDays(fSel, -1));
+    $('pLbl').textContent = isToday ? 'Peso di oggi' : 'Peso di ' + WEEKDAYS[dd.getDay()].toLowerCase() + ' ' + dd.getDate() + ' ' + MONTHS[dd.getMonth()];
+    if (v != null) {
+      $('pVal').textContent = fmtKg(v); $('pVal').className = '';
+      const diff = prev ? Math.round((v - prev.v) * 10) / 10 : null;
+      $('pNote').textContent = 'kg' + (diff != null ? ' · ' + (diff > 0 ? '+' : diff < 0 ? '−' : '±') + fmtKg(Math.abs(diff)) + ' dall\'ultima volta' : '');
+      $('pInfo').textContent = 'Salvato. Tocca + o − per correggere.';
+      $('pDel').hidden = false;
+    } else {
+      $('pVal').textContent = prev ? fmtKg(prev.v) : '80,0'; $('pVal').className = 'unset';
+      $('pNote').textContent = 'kg · non ancora registrato';
+      $('pInfo').textContent = prev ? 'Parte dall\'ultimo peso (' + fromKey(prev.k).getDate() + ' ' + MONTHS[fromKey(prev.k).getMonth()].slice(0, 3) + '). Tocca + o − per salvarlo.' : 'Tocca + o − per salvarlo.';
+      $('pDel').hidden = true;
+    }
+    // grafico
+    $('pgMese').setAttribute('aria-pressed', String(pMode === 'mese'));
+    $('pgAnno').setAttribute('aria-pressed', String(pMode === 'anno'));
+    const end = fSel, start = addDays(end, pMode === 'mese' ? -30 : -364);
+    const pts = pesiOrdinati().filter((x) => x.k >= start && x.k <= end);
+    const W = 340, H = 180, L = 34, R = 10, T = 22, B = 24;
+    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Andamento del peso">';
+    const t0 = fromKey(start).getTime(), t1 = fromKey(end).getTime();
+    const X = (k) => L + (W - L - R) * ((fromKey(k).getTime() - t0) / Math.max(1, t1 - t0));
+    if (pts.length) {
+      let lo = Math.min(...pts.map((p) => p.v)), hi = Math.max(...pts.map((p) => p.v));
+      if (hi - lo < 1) { const m = (hi + lo) / 2; lo = m - 0.5; hi = m + 0.5; }
+      const pad = (hi - lo) * 0.15; lo -= pad; hi += pad;
+      const Y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+      [lo + pad, hi - pad].forEach((g) => { svg += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(g).toFixed(1) + '" y2="' + Y(g).toFixed(1) + '" stroke="#4A4A50" stroke-width="1" stroke-dasharray="2 4"></line><text x="' + (L - 6) + '" y="' + (Y(g) + 4).toFixed(1) + '" text-anchor="end" font-size="10" fill="#9C9CA3" font-family="Archivo, sans-serif">' + fmtKg(g) + '</text>'; });
+      if (pts.length > 1) svg += '<polyline points="' + pts.map((p) => X(p.k).toFixed(1) + ',' + Y(p.v).toFixed(1)).join(' ') + '" fill="none" stroke="#FFC93C" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>';
+      const few = pts.length <= 12;
+      pts.forEach((p, i) => {
+        const last = i === pts.length - 1;
+        if (few || last) svg += '<circle cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="' + (last ? 5.5 : 4) + '" fill="' + (last ? '#FFC93C' : '#323236') + '" stroke="#FFC93C" stroke-width="2.5"></circle>';
+        if (few || last) svg += '<text x="' + X(p.k).toFixed(1) + '" y="' + (Y(p.v) - 10).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="800" fill="#F4F4F1" font-family="Archivo, sans-serif">' + fmtKg(p.v) + '</text>';
+      });
+    } else {
+      svg += '<text x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle" font-size="13" fill="#9C9CA3" font-family="Archivo, sans-serif">Nessun peso in questo periodo</text>';
+    }
+    svg += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + (H - B) + '" y2="' + (H - B) + '" stroke="#F4F4F1" stroke-width="3"></line>';
+    const lab = (k, anchor) => { const d = fromKey(k); return '<text x="' + X(k).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + anchor + '" font-size="10" font-weight="600" fill="#9C9CA3" font-family="Archivo, sans-serif">' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3) + (pMode === 'anno' ? ' ' + String(d.getFullYear()).slice(2) : '') + '</text>'; };
+    svg += lab(start, 'start') + lab(end, 'end');
+    $('pChart').innerHTML = svg + '</svg>';
+    const st = (val, l) => '<div><b>' + val + '</b><small>' + l + '</small></div>';
+    if (pts.length) {
+      const ch = Math.round((pts[pts.length - 1].v - pts[0].v) * 10) / 10;
+      $('pStats').innerHTML = st(fmtKg(Math.min(...pts.map((p) => p.v))), 'minimo') + st(fmtKg(Math.max(...pts.map((p) => p.v))), 'massimo') +
+        st(pts.length > 1 ? (ch > 0 ? '+' : ch < 0 ? '−' : '±') + fmtKg(Math.abs(ch)) : '–', pMode === 'mese' ? 'nel mese' : 'nell\'anno');
+    } else $('pStats').innerHTML = '';
+  }
+  $('fsSett').addEventListener('click', () => { fMode = 'sett'; prefSave(); render(); });
+  $('fsPeso').addEventListener('click', () => { fMode = 'peso'; prefSave(); render(); });
+  $('pgMese').addEventListener('click', () => { pMode = 'mese'; prefSave(); render(); });
+  $('pgAnno').addEventListener('click', () => { pMode = 'anno'; prefSave(); render(); });
+  const pesoBase = () => { const v = pesoOf(fSel); if (v != null) return v; const p = ultimoPesoPrima(addDays(fSel, -1)); return p ? p.v : 80; };
+  $('pPiu').addEventListener('click', () => { const v = pesoOf(fSel); setPeso(v != null ? v + 0.1 : pesoBase()); });
+  $('pMeno').addEventListener('click', () => { const v = pesoOf(fSel); setPeso(v != null ? v - 0.1 : pesoBase()); });
+  $('pDel').addEventListener('click', () => { clearTimeout(pesoTimer); const d = dayOf(fSel); delete d.peso; save(fSel, d); });
+
   function pickDay(v) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
     const t = todayKey(); return v > t ? t : v;
