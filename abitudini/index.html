@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Abitudini</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Abitudini">
+<meta name="theme-color" content="#323236">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Fredoka:wght@700&display=swap">
+<style>
+/* Layout: colonna da telefono (max 460px) su fondo scuro; blocchi pieni blu/giallo/arancio, anelli spessi con cerchio interno, un colore per abitudine, etichette maiuscole spaziate. Barra Oggi/Storico in basso. */
+:root {
+  --paper: #323236;    /* fondo */
+  --surface: #3E3E43;
+  --line: #4F4F55;
+  --ink: #F4F4F1;
+  --dark: #111111;     /* testo su giallo */
+  --muted: #BDBDC2;
+  --soft: #9C9CA3;
+  --track: #55555C;
+  --empty: #4A4A50;
+  --future: #39393E;
+  --blue: #4A86F0;
+  --yellow: #F2C230;
+  --orange: #EE6A3C;
+  --ok: #3DBE7A;
+  --danger: #F07A6A;
+  --font: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+html, body { min-height: 100% }
+body { background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased }
+.app { max-width: 460px; margin: 0 auto; padding-inline: 16px; padding-block: 22px 110px; display: flex; flex-direction: column; gap: 22px }
+.view { display: flex; flex-direction: column; gap: 22px }
+button { font: inherit; color: inherit; cursor: pointer }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px }
+
+.label { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted) }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.top h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1 }
+#dayTitle { font-family: 'Fredoka', 'Archivo', system-ui, sans-serif; font-weight: 700; font-size: 46px; letter-spacing: 0; color: #FFC93C }
+.top h1.center { font-size: 30px; text-align: center; flex: 1 }
+.top .label { margin-bottom: 6px }
+.navs { display: flex; gap: 8px }
+.icon-btn { width: 44px; height: 44px; border-radius: 22px; border: 2px solid var(--ink); background: var(--paper); display: grid; place-items: center; flex: none }
+.icon-btn:disabled { opacity: .25; cursor: default }
+
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px }
+.wday { border: 0; background: transparent; padding: 6px 0 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; border-bottom: 3px solid transparent }
+.wday.sel { color: var(--ink); border-bottom-color: var(--ink) }
+.wday svg { display: block }
+
+.summary { display: flex; align-items: center; gap: 18px; background: var(--surface); border-radius: 22px; padding: 18px }
+.summary svg { display: block }
+.big { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+.big small { font-size: 20px; color: var(--muted); font-weight: 700 }
+.sum-text { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.sum-text .lbl { font-size: 14px; font-weight: 600; color: var(--muted) }
+.sum-text .streak { font-size: 13px; font-weight: 600; color: var(--muted) }
+.sum-text .streak b { background: var(--yellow); color: var(--dark); padding: 1px 6px }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.tile { border: 0; background: var(--surface); border-radius: 18px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; min-width: 0; transition: transform .12s ease }
+.tile:active { transform: scale(.96) }
+.tile .name { font-size: 14px; font-weight: 700; line-height: 1.15 }
+.tile .val { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere }
+.tile:last-child:nth-child(3n+1) { grid-column: 2 }
+.tile.open { outline: 2px solid var(--ink); outline-offset: -2px }
+
+.legend { display: flex; gap: 14px; justify-content: center; font-size: 12px; font-weight: 600; color: var(--muted); flex-wrap: wrap; text-align: center }
+.legend span { display: inline-flex; align-items: center; gap: 6px }
+.sq { width: 12px; height: 12px; display: inline-block }
+
+.panel { background: var(--surface); border: 2px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 12px }
+.panel h2 { margin: 0; font-size: 18px; font-weight: 800 }
+.panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5 }
+.panel code { background: var(--empty); padding: 1px 4px; font-size: 12px; overflow-wrap: anywhere }
+.fields { display: flex; gap: 10px; flex-wrap: wrap }
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 100px; min-width: 0 }
+.field input, textarea { background: var(--paper); border: 2px solid var(--ink); color: var(--ink); border-radius: 0; padding: 12px; font: inherit; font-size: 18px; font-weight: 600; width: 100%; font-variant-numeric: tabular-nums }
+textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500; font-family: ui-monospace, Menlo, monospace }
+.row { display: flex; gap: 8px; flex-wrap: wrap }
+.btn { border: 2px solid var(--ink); border-radius: 0; padding: 11px 18px; min-height: 44px; font-weight: 800; background: transparent; letter-spacing: .02em }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #FFFFFF }
+.msg { font-size: 13px; font-weight: 600; min-height: 18px }
+.msg.err { color: var(--danger) }
+.msg.ok { color: var(--ok) }
+.status { text-align: center; font-size: 12px; color: var(--muted) }
+
+/* Storico */
+.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 2px solid var(--ink) }
+.seg button { border: 0; background: transparent; color: var(--ink); font-weight: 800; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; padding: 12px 0; min-height: 44px }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+.empty-note { background: var(--surface); border-left: 6px solid var(--yellow); padding: 12px 14px; font-size: 13px; color: var(--muted); line-height: 1.5 }
+
+.blocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; border-bottom: 4px solid var(--ink) }
+.block { padding: 10px 10px 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-width: 0 }
+.block b { font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+.block span { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; line-height: 1.25 }
+.block.blue { background: var(--blue); color: #FFFFFF }
+.block.yellow { background: var(--yellow); color: var(--dark) }
+.block.orange { background: var(--orange); color: #FFFFFF }
+
+.mgrid { background: var(--surface); padding: 10px 8px; display: grid; grid-template-columns: 40px repeat(var(--n), minmax(0, 1fr)) 38px; column-gap: 3px; row-gap: 3px; align-items: center }
+.mgrid .hname { height: 100px; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 6px }
+.mgrid .hname span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; white-space: nowrap }
+.mgrid .hname i { display: block; width: 100%; height: 4px; margin-top: 4px }
+.mgrid .day { display: flex; gap: 4px; align-items: baseline; font-variant-numeric: tabular-nums }
+.mgrid .day b { font-size: 12px; font-weight: 800; width: 17px; text-align: right }
+.mgrid .day i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--soft) }
+.mgrid .cell { height: 16px }
+.mgrid .score { font-size: 11px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums }
+.mgrid .fut { opacity: .5 }
+.mgrid .today b { background: var(--ink); color: var(--paper) !important; padding: 0 2px }
+.mgrid .foot { font-size: 10px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; padding-top: 8px; border-top: 4px solid var(--ink) }
+.mgrid .foot.lbl { text-align: left; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+
+.ycards { display: flex; flex-direction: column; gap: 12px }
+.ycard { background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 10px }
+.yhead { display: flex; align-items: baseline; gap: 10px }
+.yhead .n { font-weight: 800; font-size: 17px; flex: 1; min-width: 0 }
+.yhead .p { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums }
+.yhead .d { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums }
+.ygrid { display: grid; grid-template-rows: repeat(7, auto); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px }
+.ygrid span { aspect-ratio: 1 }
+.ymonths { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--soft); border-top: 3px solid var(--ink); padding-top: 4px }
+
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 2px solid var(--line); padding: 4px 16px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 5 }
+.tabbar .in { max-width: 460px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) }
+
+/* Fitness: stile a blocchi colorati e anelli con percentuale */
+.fgoals { display: flex; flex-direction: column; gap: 18px }
+.fgoal { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.fgoal .fgl { display: flex; justify-content: space-between; align-items: baseline; gap: 10px }
+.fgoal .fgl span { font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink) }
+.fgoal .fgl small { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums }
+.fgoal b { font-size: 34px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink) }
+.fgoal b.ok { color: #FFC93C }
+.fgoal .fbar { height: 8px; background: var(--track); overflow: hidden }
+.fgoal .fbar i { display: block; height: 100% }
+.fblocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end }
+.fblk { padding: 12px 10px 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; min-width: 0; min-height: 96px; transition: min-height .3s ease }
+.fblk b { font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere }
+.fblk span { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase }
+.fblk small { font-size: 11px; font-weight: 600; line-height: 1.3; opacity: .9 }
+.fblk.blue { background: #4A86F0; color: #FFFFFF }
+.fblk.orange { background: #EE6A3C; color: #FFFFFF }
+.fblk.yellow { background: #F4F4F1; color: #111111 }
+.fblk.yellow.neg b, .fblk.yellow.neg span { color: #1F8A4C }
+.fblk.yellow.pos b, .fblk.yellow.pos span { color: #D62F2F }
+.fblk.off { background: var(--surface); color: var(--muted) }
+.fbase { height: 4px; background: var(--ink); margin-top: 0 }
+.fpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+.fsport { padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; border: 2px solid var(--line); background: transparent; color: var(--muted) }
+.fsport .fsl { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase }
+.fsport b { font-size: 30px; font-weight: 800; line-height: 1 }
+.fsport small { font-size: 12px; font-weight: 600 }
+.fsport.on-gym { background: #4A86F0; border-color: #4A86F0; color: #FFFFFF }
+.fsport.on-run { background: #EE6A3C; border-color: #EE6A3C; color: #FFFFFF }
+.fchart svg { display: block; width: 100%; height: auto }
+.flegend { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 600; color: var(--muted) }
+.flegend span { display: inline-flex; align-items: center; gap: 6px }
+.fweek { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.fweek div { padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.fweek b { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+.fweek small { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; line-height: 1.3 }
+.fmini { margin-top: 8px; align-self: flex-start; border: 1.5px solid currentColor; background: transparent; color: inherit; font-size: 11px; font-weight: 800; padding: 7px 9px; border-radius: 0; min-height: 34px }
+.fnote { font-size: 12px; color: var(--muted); line-height: 1.45 }
+@media (prefers-reduced-motion: reduce) { .fblk { transition: none } }
+.tabbar button { border: 0; background: transparent; color: var(--soft); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; min-height: 50px; justify-content: center }
+.tabbar button[aria-pressed="true"] { color: var(--ink) }
+.tabbar button svg { display: block }
+.tabbar button[aria-pressed="true"] svg { color: #FFC93C }
+.tabbar button[aria-pressed="true"]::after { content: ''; width: 18px; height: 4px; background: var(--blue) }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none } }
+
+/* PWA: margine per la barra di stato e schermata di accesso */
+[hidden] { display: none !important }
+body { padding-top: env(safe-area-inset-top, 0px) }
+.login { position: fixed; inset: 0; z-index: 50; background: var(--paper); display: flex; align-items: center; justify-content: center; padding: 24px 16px }
+.login[hidden] { display: none }
+.lg-box { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px }
+.lg-box h1 { font-family: 'Fredoka', var(--font); font-size: 40px; color: #FFC93C; margin: 0 }
+.lg-box p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.45 }
+.lg-box input { width: 100%; font: inherit; font-size: 16px; padding: 14px; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 0 }
+.lg-box .err { min-height: 18px; color: var(--danger); font-size: 13px }
+.lg-box .lg-in { background: var(--ink); color: var(--dark); border: 0; font: inherit; font-weight: 800; font-size: 15px; padding: 15px; letter-spacing: .06em; text-transform: uppercase }
+.lg-box .lg-link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; padding: 6px }
+</style>
+</head>
+<body>
+<div class="login" id="login" hidden></div>
+
+<div class="app">
+  <!-- OGGI -->
+  <div class="view" id="viewOggi">
+    <header class="top">
+      <div>
+        <div class="label" id="dateLbl">…</div>
+        <h1 id="dayTitle">Oggi</h1>
+      </div>
+      <div class="navs">
+        <button class="icon-btn" id="prevBtn" aria-label="Giorno precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg></button>
+        <button class="icon-btn" id="nextBtn" aria-label="Giorno successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"></polyline></svg></button>
+      </div>
+    </header>
+
+    <nav class="week" id="week" aria-label="Ultimi 7 giorni"></nav>
+
+    <section aria-live="polite">
+      <div class="label">Riepilogo · oggi</div>
+      <div class="summary">
+        <div id="bigRing"></div>
+        <div class="sum-text">
+          <div class="big" id="bigNum">0<small>/10</small></div>
+          <div class="lbl" id="bigLbl">abitudini completate</div>
+          <div class="streak" id="streak"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="label" style="margin-bottom: 12px">Abitudini</div>
+      <div class="grid" id="grid" aria-label="Abitudini"></div>
+    </section>
+
+
+    <section class="panel" id="editPanel" hidden>
+      <h2 id="editTitle">Valore</h2>
+      <div class="fields" id="editFields"></div>
+      <div class="row">
+        <button class="btn primary" id="editSave">Salva</button>
+        <button class="btn" id="editCancel">Annulla</button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- STORICO -->
+  <div class="view" id="viewStorico" hidden>
+    <header class="top">
+      <button class="icon-btn" id="hPrev" aria-label="Periodo precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg></button>
+      <h1 class="center" id="hTitle">…</h1>
+      <button class="icon-btn" id="hNext" aria-label="Periodo successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"></polyline></svg></button>
+    </header>
+
+    <div class="seg" role="group" aria-label="Periodo">
+      <button id="segMese" aria-pressed="true">Mese</button>
+      <button id="segAnno" aria-pressed="false">Anno</button>
+    </div>
+
+    <div class="empty-note" id="hEmpty" hidden>Lo storico si riempie man mano che segni le abitudini nella scheda Oggi.</div>
+
+    <div id="hMese" class="view">
+      <div class="blocks" id="mBlocks"></div>
+      <div>
+        <div class="label" style="margin-bottom: 8px">Giorni × abitudini</div>
+        <div class="mgrid" id="mGrid"></div>
+      </div>
+      <div class="legend">
+        <span><i class="sq" style="background: var(--ink)"></i>fatta</span>
+        <span><i class="sq" style="background: var(--ink); opacity: .35"></i>a metà (Salute)</span>
+        <span><i class="sq" style="background: var(--empty)"></i>non fatta</span>
+      </div>
+    </div>
+
+    <div id="hAnno" class="view" hidden>
+      <div class="blocks" id="yBlocks"></div>
+      <div class="ycards" id="yCards"></div>
+    </div>
+  </div>
+
+  <!-- FITNESS -->
+  <div class="view" id="viewFitness" hidden>
+    <header class="top">
+      <button class="icon-btn" id="fPrev" aria-label="Giorno precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"></polyline></svg></button>
+      <div style="flex: 1; text-align: center">
+        <div class="label" id="fDate">…</div>
+        <h1 class="center" style="font-size: 30px">Fitness</h1>
+      </div>
+      <button class="icon-btn" id="fNext" aria-label="Giorno successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"></polyline></svg></button>
+    </header>
+
+    <section>
+      <div class="label" style="margin-bottom: 14px">Obiettivi del giorno</div>
+      <div class="fgoals" id="fGoals"></div>
+    </section>
+
+    <section>
+      <div class="label" style="margin-bottom: 12px">Calorie</div>
+      <div class="fblocks">
+        <div class="fblk blue" id="fBlkCibo">
+          <b id="fCibo">–</b><span>Mangiate</span><small id="fCiboNote"></small>
+          <button class="fmini" id="fCiboBtn" hidden>Annulla questo giorno</button>
+        </div>
+        <div class="fblk orange" id="fBlkBru">
+          <b id="fBru">–</b><span>Bruciate</span><small id="fBruNote"></small>
+        </div>
+        <div class="fblk yellow" id="fBlkDiff">
+          <b id="fDiff">–</b><span>Bilancio</span><small id="fDiffNote"></small>
+        </div>
+      </div>
+      <div class="fbase"></div>
+    </section>
+
+    <div class="fpair">
+      <div class="fsport" id="fGymBox"><span class="fsl">Palestra</span><b id="fGym">–</b><small id="fGymNote"></small></div>
+      <div class="fsport" id="fRunBox"><span class="fsl">Corsa</span><b id="fRun">–</b><small id="fRunNote"></small></div>
+    </div>
+
+    <section>
+      <div class="label" style="margin-bottom: 12px">Ultimi 7 giorni</div>
+      <div class="fchart" id="fChart"></div>
+      <div class="flegend" style="margin-top: 10px">
+        <span><i class="sq" style="background: #4A86F0"></i>Basale</span>
+        <span><i class="sq" style="background: #EE6A3C"></i>Attive</span>
+        <span><i class="sq" style="background: #F2C230; height: 4px"></i>Mangiate</span>
+      </div>
+    </section>
+
+    <div class="fweek" id="fWeek"></div>
+    <p class="fnote" id="fFoot"></p>
+  </div>
+
+  <div class="status" id="status"></div>
+</div>
+
+<nav class="tabbar" aria-label="Sezioni">
+  <div class="in">
+    <button id="tabOggi" aria-pressed="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>Oggi</button>
+    <button id="tabFitness" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>Fitness</button>
+    <button id="tabStorico" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.3h.01M12 17.3h.01" stroke-width="2.8"/></svg>Storico</button>
+  </div>
+</nav>
+
+<script>
+(function () {
+  const YELLOW = '#F2C230', TRACK = '#55555C';
+  const RING_TODO = '#E6E6E6', RING_DONE = '#2E8B57';   // anelli: in corso (bianco) / fatto (verde mare)
+  const ringColor = (frac) => frac >= 1 ? RING_DONE : RING_TODO;
+  const HABITS = [
+    { id: 'passi', name: 'Passi', kind: 'health', goal: 8000, unit: 'passi', color: '#4A86F0' },
+    { id: 'kcal', name: 'Calorie bruciate', kind: 'health', goal: 600, unit: 'kcal', color: '#EE6A3C' },
+    { id: 'allenamento', name: 'Allenamento', kind: 'health', goal: 30, unit: 'min', color: '#F2C230' },
+    { id: 'sonno', name: 'Sonno', kind: 'health', goal: 445, unit: 'sleep', color: '#9B7CF2' },
+    { id: 'nosgarri', name: 'No sgarri', kind: 'manual', color: '#B6D43A' },
+    { id: 'corsa', name: 'Corsa', kind: 'health', goal: 1, unit: 'run', color: '#2EC4B6', oggi: false },
+    { id: 'palestra', name: 'Palestra', kind: 'health', goal: 1, unit: 'run', color: '#D9915B', oggi: false },
+    { id: 'lettura', name: 'Lettura', kind: 'manual', color: '#3DBE7A' },
+    { id: 'not', name: 'Not', kind: 'manual', color: '#E5484D' }
+  ];
+  const OGGI = HABITS.filter((h) => h.oggi !== false);   // corsa e palestra solo nello storico
+  const STREAK_MIN = 5;
+  const DAYS_SHORT = ['D', 'L', 'M', 'M', 'G', 'V', 'S'];
+  const MONTHS = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const MONTHS_CAP = MONTHS.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+  const WEEKDAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+
+  const $ = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, '0');
+  const keyOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const fromKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return keyOf(d); };
+  const todayKey = () => keyOf(new Date());
+  const fmtNum = (n) => Math.round(n).toLocaleString('it-IT');
+  const fmtSleep = (m) => Math.floor(m / 60) + 'h ' + pad(Math.round(m % 60)) + 'm';
+
+  let selected = todayKey();
+  let days = {};
+  let db = null;
+  let editing = null;
+  let tab = 'oggi';
+  let hMode = 'mese';
+  const now = new Date();
+  let hYear = now.getFullYear(), hMonth = now.getMonth();
+
+  const LS = 'abitudini-giorni';
+  function lsLoad() { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } }
+  function lsSave() { try { localStorage.setItem(LS, JSON.stringify(days)); } catch (e) {} }
+  function prefLoad() { try { const p = JSON.parse(localStorage.getItem('abitudini-pref') || '{}'); if (p.tab) tab = p.tab; if (p.hMode) hMode = p.hMode; } catch (e) {} }
+  function prefSave() { try { localStorage.setItem('abitudini-pref', JSON.stringify({ tab, hMode })); } catch (e) {} }
+
+  function dayOf(k) {
+    const d = days[k] || {};
+    return { data: k, salute: Object.assign({}, d.salute || {}), manuali: Object.assign({}, d.manuali || {}) };
+  }
+  // No sgarri automatico: calorie mangiate (YAZIO) sotto il limite a fine giornata
+  const CIBO_LIMITE = 1820;
+  function ciboOf(d) { const s = d.salute || {}; return !s.ciboAnnullato && Number(s.cibo) > 0 ? Number(s.cibo) : null; }
+  // calorie attive: obiettivo 400 fino al 10 ottobre 2026, 600 da allora in poi
+  function goalFor(h, k) { return h.id === 'kcal' && k && k < '2026-10-11' ? 400 : h.goal; }
+  function progress(h, d) {
+    if (h.id === 'nosgarri') {
+      const c = ciboOf(d);
+      if (c == null) return d.manuali.nosgarri ? 1 : 0;
+      if (d.data >= todayKey()) return 0;   // oggi si decide a mezzanotte
+      return c < CIBO_LIMITE ? 1 : 0;
+    }
+    if (h.kind === 'manual') return d.manuali[h.id] ? 1 : 0;
+    const v = Number(d.salute[h.id] || 0);
+    return Math.max(0, Math.min(1, v / goalFor(h, d.data)));
+  }
+  function doneCount(d, list) { return (list || OGGI).filter((h) => progress(h, d) >= 1).length; }
+  // Giorno perfetto: passi, calorie bruciate, allenamento, sonno e no sgarri tutti rispettati
+  const PERFECT_IDS = ['passi', 'kcal', 'allenamento', 'sonno', 'nosgarri'];
+  function isPerfect(k) { const d = dayOf(k); return PERFECT_IDS.every((id) => progress(HABITS.find((h) => h.id === id), d) >= 1); }
+  function firstKey() { const ks = Object.keys(days).sort(); return ks.length ? ks[0] : todayKey(); }
+
+  // Anello: traccia scura piena, arco colorato con punte arrotondate, spunta colorata quando è fatta
+  function ring(size, frac, color, check) {
+    const sw = Math.max(4, Math.round(size * 0.11)), half = size / 2;
+    const r = half - sw / 2 - 1.5, c = 2 * Math.PI * r;
+    let s = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' +
+      '<circle cx="' + half + '" cy="' + half + '" r="' + r + '" fill="none" stroke="' + TRACK + '" stroke-width="' + sw + '"></circle>';
+    if (frac > 0) s += '<circle cx="' + half + '" cy="' + half + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + (c * Math.min(frac, 1)).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + half + ' ' + half + ')"></circle>';
+    if (check) {
+      const q = r * 0.35;
+      s += '<polyline points="' + (half - q) + ' ' + half + ' ' + (half - q * 0.35) + ' ' + (half + q * 0.65) + ' ' + (half + q) + ' ' + (half - q * 0.65) + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>';
+    }
+    return s + '</svg>';
+  }
+
+  function valueText(h, d) {
+    if (h.id === 'nosgarri') {
+      const c = ciboOf(d);
+      if (c == null) return d.manuali.nosgarri ? 'fatto (a mano)' : (d.salute.ciboAnnullato ? 'calorie annullate · tocca' : 'nessun dato · tocca');
+      if (d.data >= todayKey()) return c >= CIBO_LIMITE ? 'superato: ' + fmtNum(c) + ' kcal' : fmtNum(c) + ' / ' + fmtNum(CIBO_LIMITE) + ' kcal';
+      return fmtNum(c) + ' kcal' + (c < CIBO_LIMITE ? '' : ' · sopra 1.820');
+    }
+    if (h.kind === 'manual') return d.manuali[h.id] ? 'fatto' : 'da fare';
+    const v = d.salute[h.id];
+    if (h.unit === 'run') return Number(v) >= 1 ? 'fatta' : 'nessuna corsa';
+    if (v == null) return 'nessun dato';
+    if (h.unit === 'sleep') return fmtSleep(v) + ' / ' + fmtSleep(h.goal);
+    return fmtNum(v) + ' / ' + fmtNum(goalFor(h, d.data)) + (h.unit === 'min' ? ' min' : '');
+  }
+
+  function streak() {
+    let k = todayKey(), n = 0;
+    if (doneCount(dayOf(k)) < STREAK_MIN) k = addDays(k, -1);
+    while (days[k] && doneCount(dayOf(k)) >= STREAK_MIN) { n++; k = addDays(k, -1); }
+    return n;
+  }
+
+  // ---------- OGGI ----------
+  function renderOggi() {
+    const d = dayOf(selected), date = fromKey(selected), isToday = selected === todayKey();
+    $('dayTitle').textContent = isToday ? 'Oggi' : (selected === addDays(todayKey(), -1) ? 'Ieri' : WEEKDAYS[date.getDay()]);
+    $('dateLbl').textContent = WEEKDAYS[date.getDay()] + ' · ' + date.getDate() + ' ' + MONTHS[date.getMonth()];
+    $('nextBtn').disabled = isToday;
+
+    const end = isToday ? selected : (addDays(selected, 3) > todayKey() ? todayKey() : addDays(selected, 3));
+    let w = '';
+    for (let i = 6; i >= 0; i--) {
+      const k = addDays(end, -i), dd = dayOf(k), f = doneCount(dd) / OGGI.length, fd = fromKey(k);
+      w += '<button class="wday' + (k === selected ? ' sel' : '') + '" data-day="' + k + '" aria-label="' + WEEKDAYS[fd.getDay()] + ' ' + fd.getDate() + '">' +
+        '<span>' + DAYS_SHORT[fd.getDay()] + '</span>' + ring(34, f, ringColor(f), false) + '<span>' + fd.getDate() + '</span></button>';
+    }
+    $('week').innerHTML = w;
+
+    const done = doneCount(d);
+    $('bigRing').innerHTML = ring(96, done / OGGI.length, '#FFC93C', done === OGGI.length);
+    $('bigNum').innerHTML = done + '<small>/' + OGGI.length + '</small>';
+    $('bigLbl').textContent = (done === 1 ? 'abitudine completata' : 'abitudini completate') + (isToday ? ' oggi' : '');
+    const s = streak();
+    $('streak').innerHTML = s > 0 ? 'Serie: <b>' + s + (s === 1 ? ' giorno' : ' giorni') + '</b> con almeno ' + STREAK_MIN + ' su ' + OGGI.length : 'Arriva a ' + STREAK_MIN + ' su ' + OGGI.length + ' per iniziare una serie';
+
+    $('grid').innerHTML = OGGI.map((h) => {
+      const p = progress(h, d), color = ringColor(p);
+      return '<button class="tile' + (editing === h.id ? ' open' : '') + '" data-h="' + h.id + '" aria-pressed="' + (h.kind === 'manual' ? String(p >= 1) : 'false') + '">' +
+        ring(64, p, color, p >= 1) +
+        '<span class="name">' + h.name + '</span><span class="val">' + valueText(h, d) + '</span></button>';
+    }).join('');
+  }
+
+  // ---------- STORICO ----------
+  function cellStyle(h, k, today) {
+    if (k > today) return 'background:var(--future)';
+    const p = progress(h, dayOf(k));
+    if (p >= 1) return 'background:' + h.color;
+    if (h.kind === 'health' && h.unit !== 'run' && p > 0) return 'background:' + h.color + ';opacity:.35';
+    return 'background:var(--empty)';
+  }
+  function blocks(items) {
+    return items.map((b) => '<div class="block ' + b.c + '" style="min-height:' + b.h + 'px"><b>' + b.v + '</b><span>' + b.l + '</span></div>').join('');
+  }
+
+  function renderMese() {
+    const today = todayKey(), first = firstKey();
+    const nDays = new Date(hYear, hMonth + 1, 0).getDate();
+    $('hTitle').textContent = MONTHS_CAP[hMonth] + ' ' + hYear;
+    $('hNext').disabled = (hYear > now.getFullYear()) || (hYear === now.getFullYear() && hMonth >= now.getMonth());
+
+    const counts = HABITS.map(() => 0);
+    let doneTotal = 0, elapsed = 0, perfect = 0, best = 0, run = 0;
+    let html = '<div></div>' + HABITS.map((h) => '<div class="hname"><div style="display:flex;flex-direction:column;align-items:center;width:100%"><span style="color:' + h.color + '">' + h.name + '</span><i style="background:' + h.color + '"></i></div></div>').join('') +
+      '<div class="score label" style="align-self:end;padding-bottom:6px;font-size:9px">tot</div>';
+    for (let d = 1; d <= nDays; d++) {
+      const date = new Date(hYear, hMonth, d), k = keyOf(date), wd = date.getDay();
+      const future = k > today, counted = !future && k >= first;
+      if (counted) elapsed++;
+      let score = 0;
+      const cells = HABITS.map((h, i) => {
+        if (!future && progress(h, dayOf(k)) >= 1) { score++; counts[i]++; }
+        return '<span class="cell' + (future ? ' fut' : '') + '" style="' + cellStyle(h, k, today) + '"></span>';
+      }).join('');
+      doneTotal += score;
+      if (counted && isPerfect(k)) perfect++;
+      if (counted) { run = score >= STREAK_MIN ? run + 1 : 0; best = Math.max(best, run); }
+      const numColor = (wd === 0 || wd === 6) ? 'var(--soft)' : 'var(--ink)';
+      const scColor = isPerfect(k) ? 'var(--ok)' : score >= STREAK_MIN ? 'var(--ink)' : 'var(--soft)';
+      html += '<div class="day' + (future ? ' fut' : '') + (k === today ? ' today' : '') + '"><b style="color:' + numColor + '">' + d + '</b><i>' + DAYS_SHORT[wd] + '</i></div>' + cells +
+        '<span class="score' + (future ? ' fut' : '') + '" style="color:' + scColor + '">' + (future || !days[k] ? '' : score + '/' + HABITS.length) + '</span>';
+    }
+    html += '<div class="foot lbl">% mese</div>' + HABITS.map((h, i) => '<div class="foot">' + (elapsed ? Math.round(counts[i] / elapsed * 100) : '–') + '</div>').join('') + '<div class="foot"></div>';
+    const g = $('mGrid');
+    g.style.setProperty('--n', HABITS.length);
+    g.innerHTML = html;
+
+    const pct = elapsed ? Math.round(doneTotal / (elapsed * HABITS.length) * 100) : 0;
+    $('mBlocks').innerHTML = blocks([
+      { c: 'blue', v: doneTotal, l: 'abitudini fatte', h: 104 },
+      { c: 'yellow', v: elapsed ? pct + '%' : '–', l: 'del mese finora', h: 86 },
+      { c: 'orange', v: perfect, l: perfect === 1 ? 'giorno perfetto' : 'giorni perfetti', h: 72 }
+    ]);
+  }
+
+  function renderAnno() {
+    const today = todayKey(), first = firstKey();
+    $('hTitle').textContent = String(hYear);
+    $('hNext').disabled = hYear >= now.getFullYear();
+    const jan1 = new Date(hYear, 0, 1);
+    const offset = (jan1.getDay() + 6) % 7;
+    const total = Math.round((new Date(hYear + 1, 0, 1) - jan1) / 86400000);
+    const weeks = Math.ceil((offset + total) / 7);
+    const keys = [];
+    for (let i = 0; i < weeks * 7; i++) {
+      const idx = i - offset;
+      keys.push(idx < 0 || idx >= total ? null : keyOf(new Date(hYear, 0, 1 + idx)));
+    }
+    let elapsed = 0, perfect = 0, doneAll = 0;
+    keys.forEach((k) => {
+      if (k && k <= today && k >= first) { elapsed++; const n = doneCount(dayOf(k), HABITS); doneAll += n; if (isPerfect(k)) perfect++; }
+    });
+
+    $('yCards').innerHTML = HABITS.map((h) => {
+      let done = 0;
+      const cells = keys.map((k) => {
+        if (!k) return '<span></span>';
+        if (k <= today && progress(h, dayOf(k)) >= 1) done++;
+        return '<span style="' + cellStyle(h, k, today) + '"></span>';
+      }).join('');
+      const pct = elapsed ? Math.round(done / elapsed * 100) + '%' : '–';
+      return '<div class="ycard"><div class="yhead"><span class="n">' + h.name + '</span>' +
+        '<span class="d">' + done + (done === 1 ? ' giorno' : ' giorni') + '</span>' +
+        '<span class="p" style="color:' + h.color + '">' + pct + '</span></div>' +
+        '<div class="ygrid">' + cells + '</div>' +
+        '<div class="ymonths"><span>GEN</span><span>MAR</span><span>MAG</span><span>LUG</span><span>SET</span><span>NOV</span><span>DIC</span></div></div>';
+    }).join('');
+
+    $('yBlocks').innerHTML = blocks([
+      { c: 'blue', v: elapsed, l: 'giorni registrati', h: 104 },
+      { c: 'yellow', v: elapsed ? Math.round(doneAll / (elapsed * HABITS.length) * 100) + '%' : '–', l: 'completamento', h: 86 },
+      { c: 'orange', v: perfect, l: perfect === 1 ? 'giorno perfetto' : 'giorni perfetti', h: 72 }
+    ]);
+  }
+
+  function renderStorico() {
+    $('segMese').setAttribute('aria-pressed', String(hMode === 'mese'));
+    $('segAnno').setAttribute('aria-pressed', String(hMode === 'anno'));
+    $('hMese').hidden = hMode !== 'mese';
+    $('hAnno').hidden = hMode !== 'anno';
+    $('hEmpty').hidden = Object.keys(days).length > 0;
+    if (hMode === 'mese') renderMese(); else renderAnno();
+  }
+
+  // ---------- FITNESS ----------
+  let fSel = todayKey();
+  const C_ATT = '#EE6A3C', C_BAS = '#6F6F78', C_CIBO = '#F4F4F1';
+  const nf = (n) => Math.round(n).toLocaleString('it-IT');
+  function fit(k) {
+    const s = (days[k] && days[k].salute) || {};
+    const att = s.kcal != null ? Number(s.kcal) : null, bas = Number(s.basale) || 0;
+    const corsaKm = s.corsakm != null ? Number(s.corsakm) : null;
+    return { att, bas, annullato: !!s.ciboAnnullato, ciboRaw: Number(s.cibo) > 0 ? Number(s.cibo) : null,
+      cibo: !s.ciboAnnullato && Number(s.cibo) > 0 ? Number(s.cibo) : null,
+      passi: s.passi != null ? Number(s.passi) : null, allen: s.allenamento != null ? Number(s.allenamento) : null,
+      corsa: Number(s.corsa) >= 1 || (corsaKm || 0) > 0, corsaKm, palestra: Number(s.palestra) >= 1, has: !!days[k] };
+  }
+  const F_BLUE = '#4A86F0', F_ORANGE = '#EE6A3C', F_YELLOW = '#F2C230', F_INK = '#F4F4F1', F_TRACK = '#4A4A50';
+  // anello stile "goal": arco spesso, traccia sottile, cerchio interno, percentuale grande
+  function goalRing(frac, color, label) {
+    const S = 116, h = S / 2, sw = 14, r = h - sw / 2 - 2, c = 2 * Math.PI * r, r2 = r - sw / 2 - 6;
+    let s = '<svg viewBox="0 0 ' + S + ' ' + S + '" aria-hidden="true"><circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + F_TRACK + '" stroke-width="2"></circle>';
+    if (frac > 0) s += '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + sw + '" stroke-dasharray="' + (c * Math.min(frac, 1)).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + h + ' ' + h + ')"></circle>';
+    s += '<circle cx="' + h + '" cy="' + h + '" r="' + r2.toFixed(1) + '" fill="none" stroke="' + F_INK + '" stroke-width="2.5"></circle>';
+    s += '<text x="' + h + '" y="' + h + '" text-anchor="middle" dominant-baseline="central" font-family="Archivo, Helvetica, Arial, sans-serif" font-weight="800" font-size="' + (label.length > 4 ? 20 : 24) + '" fill="' + F_INK + '">' + label + '</text>';
+    return s + '</svg>';
+  }
+  function renderFitness() {
+    const today = todayKey(), isToday = fSel === today, d = fromKey(fSel), f = fit(fSel);
+    const ND = 'non disponibile';
+    $('fDate').textContent = (isToday ? 'Oggi · ' : '') + WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    $('fNext').disabled = isToday;
+
+    // Obiettivi: passi, calorie attive, allenamento
+    const G = (h) => goalFor(HABITS.find((x) => x.id === h), fSel);
+    const goals = [
+      { v: f.passi, g: G('passi'), name: 'Passi', col: F_BLUE, fmt: (x) => nf(x) },
+      { v: f.att, g: G('kcal'), name: 'Kcal attive', col: F_ORANGE, fmt: (x) => nf(x) },
+      { v: f.allen, g: G('allenamento'), name: 'Allenamento', col: F_YELLOW, fmt: (x) => nf(x) + "'" }
+    ];
+    $('fGoals').innerHTML = goals.map((o) => {
+      const has = o.v != null, frac = has ? Math.min(1, o.v / o.g) : 0, ok = has && o.v >= o.g;
+      return '<div class="fgoal"><div class="fgl"><span>' + o.name + '</span><small>' + (has ? 'su ' + o.fmt(o.g) + (isToday ? ' · finora' : '') : ND) + '</small></div>' +
+        '<b' + (ok ? ' class="ok"' : '') + '>' + (has ? o.fmt(o.v) : '–') + '</b>' +
+        '<div class="fbar">' + (has ? '<i style="width:' + (frac * 100).toFixed(1) + '%;background:' + (ok ? RING_DONE : RING_TODO) + '"></i>' : '') + '</div></div>';
+    }).join('');
+
+    // Blocchi calorie: mangiate, bruciate (attive + basale), bilancio
+    const bru = f.att != null ? f.att + f.bas : null;
+    const maxK = Math.max(f.cibo || 0, bru || 0, 1);
+    const hgt = (x) => x ? Math.round(96 + 70 * (x / maxK)) + 'px' : '96px';
+    $('fCibo').textContent = f.cibo != null ? nf(f.cibo) : '–';
+    $('fCiboNote').textContent = f.annullato ? 'annullate' : (f.cibo != null ? 'kcal' + (f.cibo >= CIBO_LIMITE ? ' · sopra 1.820' : '') : ND);
+    $('fBlkCibo').className = 'fblk ' + (f.cibo != null ? 'blue' : 'off');
+    $('fBlkCibo').style.minHeight = hgt(f.cibo);
+    const cb = $('fCiboBtn');
+    cb.hidden = !(f.annullato || f.ciboRaw != null);
+    cb.textContent = f.annullato ? 'Ripristina' : 'Annulla giorno';
+
+    $('fBru').textContent = bru != null ? nf(bru) : '–';
+    $('fBruNote').textContent = bru != null ? 'kcal' + (isToday ? ' finora' : '') : ND;
+    $('fBlkBru').className = 'fblk ' + (bru != null ? 'orange' : 'off');
+    $('fBlkBru').style.minHeight = hgt(bru);
+
+    if (f.cibo != null && bru != null) {
+      const diff = f.cibo - bru;
+      $('fDiff').textContent = (diff > 0 ? '+' : diff < 0 ? '−' : '') + nf(Math.abs(diff));
+      $('fDiffNote').textContent = diff <= 0 ? 'deficit' : 'surplus';
+      $('fBlkDiff').className = 'fblk yellow ' + (diff > 0 ? 'pos' : 'neg');
+    } else {
+      $('fDiff').textContent = '–';
+      $('fDiffNote').textContent = ND;
+      $('fBlkDiff').className = 'fblk off';
+    }
+    $('fBlkDiff').style.minHeight = '96px';
+
+    // Palestra e corsa
+    $('fGym').textContent = f.has ? (f.palestra ? 'Sì' : 'No') : '–';
+    $('fGymNote').textContent = f.has ? (f.palestra ? 'allenamento di forza' : 'niente palestra') : ND;
+    $('fGymBox').className = 'fsport' + (f.palestra ? ' on-gym' : '');
+    $('fRun').textContent = f.has ? (f.corsa ? 'Sì' : 'No') : '–';
+    $('fRunNote').textContent = f.corsaKm != null && f.corsaKm > 0 ? String(f.corsaKm.toFixed(2)).replace('.', ',') + ' km' : (f.corsa ? 'km non disponibili' : (f.has ? 'nessuna corsa' : ND));
+    $('fRunBox').className = 'fsport' + (f.corsa ? ' on-run' : '');
+
+    // Grafico 7 giorni: basale (blu) + attive (arancio), trattino giallo = mangiate
+    const ks = []; for (let i = 6; i >= 0; i--) ks.push(addDays(fSel, -i));
+    const rows = ks.map((k) => ({ k, ...fit(k) }));
+    const max = Math.max(2500, ...rows.map((r) => Math.max((r.att || 0) + r.bas, r.cibo || 0))) * 1.15;
+    const W = 340, H = 190, top = 20, bot = 24, colW = W / 7, bw = 30, sc = (H - top - bot) / max, base = H - bot;
+    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Calorie bruciate e mangiate negli ultimi 7 giorni">';
+    rows.forEach((r, i) => {
+      const cx = colW * i + colW / 2, x = cx - bw / 2;
+      const tot = (r.att || 0) + r.bas;
+      let topY = base;
+      if (tot) {
+        const hb = r.bas * sc, ha = (r.att || 0) * sc;
+        if (hb) svg += '<rect x="' + x + '" y="' + (base - hb).toFixed(1) + '" width="' + bw + '" height="' + hb.toFixed(1) + '" fill="' + F_BLUE + '"></rect>';
+        if (ha) svg += '<rect x="' + x + '" y="' + (base - hb - ha).toFixed(1) + '" width="' + bw + '" height="' + ha.toFixed(1) + '" fill="' + F_ORANGE + '"></rect>';
+        topY = base - hb - ha;
+      }
+      if (r.cibo != null) {
+        const y = base - r.cibo * sc;
+        svg += '<line x1="' + (x - 7) + '" x2="' + (x + bw + 7) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + F_YELLOW + '" stroke-width="5"></line>';
+        topY = Math.min(topY, y - 3);
+      }
+      if (r.cibo != null && tot) {
+        const diff = Math.round(r.cibo - tot);
+        svg += '<text x="' + cx + '" y="' + (topY - 6).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="800" fill="' + (diff > 0 ? '#FF6B6B' : '#4CD68A') + '" font-family="Archivo, sans-serif">' + (diff > 0 ? '+' : diff < 0 ? '−' : '') + nf(Math.abs(diff)) + '</text>';
+      } else if (tot) {
+        svg += '<text x="' + cx + '" y="' + (topY - 6).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="800" fill="' + F_INK + '" font-family="Archivo, sans-serif">' + (tot / 1000).toFixed(1).replace('.', ',') + 'k</text>';
+      }
+      const dd = fromKey(r.k), sel = r.k === fSel;
+      svg += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" font-weight="' + (sel ? 800 : 600) + '" fill="' + (sel ? F_INK : '#9C9CA3') + '" font-family="Archivo, sans-serif">' + DAYS_SHORT[dd.getDay()] + ' ' + dd.getDate() + '</text>';
+    });
+    svg += '<line x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '" stroke="' + F_INK + '" stroke-width="3"></line>';
+    $('fChart').innerHTML = svg + '</svg>';
+
+    // Riepilogo ultimi 7 giorni, a blocchi colorati
+    const done = rows.filter((r) => r.k !== today);
+    const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const mPassi = avg(done.filter((r) => r.passi != null).map((r) => r.passi));
+    const mAtt = avg(done.filter((r) => r.att != null).map((r) => r.att));
+    const kmTot = rows.reduce((a, r) => a + (r.corsaKm || 0), 0);
+    const blk = (bg, fg, v, l) => '<div style="background:' + bg + ';color:' + fg + '"><b>' + v + '</b><small>' + l + '</small></div>';
+    $('fWeek').innerHTML =
+      blk(F_BLUE, '#FFFFFF', mPassi ? nf(mPassi) : '–', 'Media passi<br>ultimi 7 giorni') +
+      blk(F_YELLOW, '#111111', mAtt ? nf(mAtt) : '–', 'Media kcal attive<br>ultimi 7 giorni') +
+      blk(F_ORANGE, '#FFFFFF', kmTot ? kmTot.toFixed(1).replace('.', ',') + ' km' : '0 km', 'Km di corsa<br>ultimi 7 giorni');
+    $('fFoot').textContent = 'Bruciate = calorie attive + metabolismo basale. Le calorie mangiate arrivano da YAZIO tramite Salute: nei giorni senza pasti registrati il bilancio non è disponibile. Le medie escludono oggi.';
+  }
+
+  function render() {
+    $('viewOggi').hidden = tab !== 'oggi';
+    $('viewFitness').hidden = tab !== 'fitness';
+    $('viewStorico').hidden = tab !== 'storico';
+    $('tabOggi').setAttribute('aria-pressed', String(tab === 'oggi'));
+    $('tabFitness').setAttribute('aria-pressed', String(tab === 'fitness'));
+    $('tabStorico').setAttribute('aria-pressed', String(tab === 'storico'));
+    if (tab === 'oggi') renderOggi(); else if (tab === 'fitness') renderFitness(); else renderStorico();
+  }
+
+  async function save(k, body) {
+    days[k] = body;
+    render();
+    if (db) {
+      try { await db.doc('giorni/' + k).set(body); setStatus(''); }
+      catch (e) {
+        if (e && e.code === 'unavailable') { setTimeout(() => db.doc('giorni/' + k).set(body).catch(() => setStatus('Salvataggio non riuscito: riprova tra poco.')), 800 + Math.random() * 800); }
+        else setStatus('Salvataggio non riuscito: riprova tra poco.');
+      }
+    } else lsSave();
+  }
+  function setStatus(t) { $('status').textContent = t; }
+
+  // ---------- Interazioni ----------
+  $('tabOggi').addEventListener('click', () => { tab = 'oggi'; prefSave(); render(); window.scrollTo(0, 0); });
+  $('tabStorico').addEventListener('click', () => { tab = 'storico'; closeEdit(); prefSave(); render(); window.scrollTo(0, 0); });
+  $('tabFitness').addEventListener('click', () => { tab = 'fitness'; closeEdit(); prefSave(); render(); window.scrollTo(0, 0); });
+  $('fCiboBtn').addEventListener('click', () => {
+    const d = dayOf(fSel);
+    if (d.salute.ciboAnnullato) delete d.salute.ciboAnnullato; else d.salute.ciboAnnullato = true;
+    save(fSel, d);
+  });
+  $('fPrev').addEventListener('click', () => { fSel = addDays(fSel, -1); render(); });
+  $('fNext').addEventListener('click', () => { if (fSel < todayKey()) { fSel = addDays(fSel, 1); render(); } });
+  $('segMese').addEventListener('click', () => { hMode = 'mese'; prefSave(); render(); });
+  $('segAnno').addEventListener('click', () => { hMode = 'anno'; prefSave(); render(); });
+  $('hPrev').addEventListener('click', () => {
+    if (hMode === 'mese') { hMonth--; if (hMonth < 0) { hMonth = 11; hYear--; } } else hYear--;
+    render();
+  });
+  $('hNext').addEventListener('click', () => {
+    if (hMode === 'mese') { hMonth++; if (hMonth > 11) { hMonth = 0; hYear++; } } else hYear++;
+    render();
+  });
+
+  $('week').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (b) { selected = b.dataset.day; closeEdit(); render(); } });
+  $('prevBtn').addEventListener('click', () => { selected = addDays(selected, -1); closeEdit(); render(); });
+  $('nextBtn').addEventListener('click', () => { if (selected < todayKey()) { selected = addDays(selected, 1); closeEdit(); render(); } });
+
+  $('grid').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-h]'); if (!b) return;
+    const h = HABITS.find((x) => x.id === b.dataset.h);
+    if (h.id === 'nosgarri' && ciboOf(dayOf(selected)) != null) {
+      $('status').textContent = 'No sgarri si calcola da solo con le calorie di YAZIO (sotto ' + fmtNum(CIBO_LIMITE) + ' kcal). Per segnarlo a mano, annulla le calorie del giorno nella sezione Fitness.';
+      return;
+    }
+    if (h.kind === 'manual') {
+      const d = dayOf(selected); d.manuali[h.id] = !d.manuali[h.id]; save(selected, d);
+    } else if (h.unit === 'run') {
+      const d = dayOf(selected); d.salute.corsa = Number(d.salute.corsa) >= 1 ? 0 : 1; save(selected, d);
+    } else openEdit(h);
+  });
+
+  function openEdit(h) {
+    editing = h.id;
+    const d = dayOf(selected), v = d.salute[h.id];
+    $('editTitle').textContent = h.name;
+    if (h.unit === 'sleep') {
+      $('editFields').innerHTML =
+        '<div class="field"><label class="label" for="f-h">Ore</label><input id="f-h" type="number" inputmode="numeric" min="0" max="24" value="' + (v != null ? Math.floor(v / 60) : '') + '"></div>' +
+        '<div class="field"><label class="label" for="f-m">Minuti</label><input id="f-m" type="number" inputmode="numeric" min="0" max="59" value="' + (v != null ? Math.round(v % 60) : '') + '"></div>';
+    } else {
+      const lbl = h.unit === 'passi' ? 'Numero di passi' : h.unit === 'kcal' ? 'Calorie bruciate (kcal)' : 'Minuti di allenamento';
+      $('editFields').innerHTML = '<div class="field"><label class="label" for="f-v">' + lbl + '</label><input id="f-v" type="number" inputmode="numeric" min="0" value="' + (v != null ? v : '') + '"></div>';
+    }
+    $('editPanel').hidden = false;
+    render();
+    const first = $('editFields').querySelector('input'); if (first) first.focus();
+  }
+  function closeEdit() { editing = null; $('editPanel').hidden = true; }
+  $('editCancel').addEventListener('click', () => { closeEdit(); render(); });
+  $('editSave').addEventListener('click', () => {
+    const h = HABITS.find((x) => x.id === editing); if (!h) return;
+    const d = dayOf(selected);
+    let v;
+    if (h.unit === 'sleep') v = (Number($('f-h').value) || 0) * 60 + (Number($('f-m').value) || 0);
+    else v = Number($('f-v').value);
+    if (!isFinite(v) || v < 0) return;
+    d.salute[h.id] = v;
+    if (h.id === 'sonno') d.salute.sonnoManuale = true;   // l'aggiornamento automatico non lo sovrascrive più
+    closeEdit(); save(selected, d);
+  });
+
+  // ---------- Import automatico dal link ----------
+  // Il Comando apre l'app con un link tipo …#p11539_k1117_a142_s553_c10.8 (p passi, k kcal, a allenamento, s sonno, c corsa)
+  function applyHash() {
+    let h = '';
+    try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { h = (location.hash || '').slice(1); }
+    if (!h) return;
+    if (!/[pkascf][0-9]/i.test(h)) {
+      if (/^[pkascf]/i.test(h)) { setStatus('Link da Salute ricevuto, ma per oggi non c\'erano ancora dati.'); }
+      return;
+    }
+    let last = '';
+    try { last = localStorage.getItem('abitudini-ultimo-link') || ''; } catch (e) {}
+    const stamp = todayKey() + '|' + h;
+    if (stamp === last) return;
+    const keys = { p: 'passi', k: 'kcal', a: 'allenamento', s: 'sonno', c: 'corsa', f: 'cibo' };
+    const vals = {};
+    h.split(/[_&;]/).forEach((part) => {
+      const m = part.trim().match(/^([pkascf])([0-9][0-9.,]*)$/i);
+      if (m) {
+        let v = m[2].replace(/[.,]+$/, '');
+        if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, ''); else v = v.replace(',', '.');
+        const n = Number(v);
+        if (isFinite(n)) vals[keys[m[1].toLowerCase()]] = n;
+      }
+    });
+    if (!Object.keys(vals).length) return;
+    if (isFinite(vals.sonno)) { const s = vals.sonno; vals.sonno = s > 1440 ? Math.round(s / 60) : s > 0 && s <= 24 ? Math.round(s * 60) : Math.round(s); }
+    ['passi', 'kcal', 'allenamento', 'cibo'].forEach((k) => { if (isFinite(vals[k])) vals[k] = Math.round(vals[k]); });
+    if (isFinite(vals.corsa)) vals.corsa = vals.corsa > 0 ? 1 : 0;
+    const k = todayKey(), d = dayOf(k);
+    Object.keys(vals).forEach((x) => { d.salute[x] = vals[x]; });
+    selected = k; tab = 'oggi';
+    save(k, d);
+    try { localStorage.setItem('abitudini-ultimo-link', stamp); } catch (e) {}
+    setStatus('Dati di Salute importati in automatico.');
+  }
+
+  // ---------- Avvio ----------
+  prefLoad();
+  days = lsLoad();
+  render();
+  // ---------- Firebase (stesso progetto e stesso accesso di Taccuino) ----------
+  const FB_CONFIG = { apiKey: "AIzaSyD-an8EoYxGqaicsjqxtDOLWNMD6jweb2g", authDomain: "taccuino-d80c4.firebaseapp.com", projectId: "taccuino-d80c4", storageBucket: "taccuino-d80c4.firebasestorage.app", messagingSenderId: "986043094240", appId: "1:986043094240:web:be6a896dd468b203f62c85" };
+  let unsub = null;
+  function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function showLogin(msg) {
+    const el = $('login'); el.hidden = false;
+    let em = ''; try { em = localStorage.getItem('tac-email') || ''; } catch (e) {}
+    el.innerHTML = '<div class="lg-box"><h1>Abitudini</h1><p>Accedi con lo stesso account di Taccuino.</p>' +
+      '<input id="lgE" type="email" autocomplete="username" placeholder="Email" value="' + esc(em) + '">' +
+      '<input id="lgP" type="password" autocomplete="current-password" placeholder="Password">' +
+      '<div class="err" id="lgErr">' + (msg || '') + '</div>' +
+      '<button type="button" class="lg-in" id="lgIn">Accedi</button>' +
+      '<button type="button" class="lg-link" id="lgReset">Password dimenticata</button></div>';
+    const it = (e) => ({ 'auth/invalid-credential': 'Email o password sbagliate.', 'auth/wrong-password': 'Password sbagliata.', 'auth/user-not-found': 'Nessun account con questa email.', 'auth/invalid-email': 'Email non valida.', 'auth/too-many-requests': 'Troppi tentativi: riprova tra poco.', 'auth/network-request-failed': 'Connessione assente.' }[e && e.code] || 'Accesso non riuscito.');
+    const go = async () => {
+      const e1 = $('lgE').value.trim(), pw = $('lgP').value;
+      try { localStorage.setItem('tac-email', e1); } catch (e) {}
+      $('lgErr').textContent = '';
+      try { await firebase.auth().signInWithEmailAndPassword(e1, pw); } catch (e) { $('lgErr').textContent = it(e); }
+    };
+    $('lgIn').onclick = go;
+    $('lgP').onkeydown = (ev) => { if (ev.key === 'Enter') go(); };
+    $('lgReset').onclick = async () => {
+      const e1 = $('lgE').value.trim(); if (!e1) { $('lgErr').textContent = 'Scrivi prima la tua email.'; return; }
+      try { await firebase.auth().sendPasswordResetEmail(e1); $('lgErr').textContent = 'Ti ho mandato una email per cambiare la password.'; } catch (e) { $('lgErr').textContent = it(e); }
+    };
+  }
+  (function boot() {
+    if (typeof firebase === 'undefined') { setStatus('Connessione assente: riapri l\'app.'); return; }
+    firebase.initializeApp(FB_CONFIG);
+    const FS = firebase.firestore();
+    try { FS.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch (e) {}
+    firebase.auth().onAuthStateChanged((u) => {
+      if (unsub) { unsub(); unsub = null; }
+      if (!u) { db = null; showLogin(); return; }
+      $('login').hidden = true;
+      const base = 'users/' + u.uid + '/abitudini';
+      db = { collection: () => FS.collection(base), doc: (p) => FS.doc(base + '/' + p.split('/').pop()) };
+      let first = true;
+      unsub = FS.collection(base).onSnapshot((snap) => {
+        const next = {};
+        snap.docs.forEach((doc) => { next[doc.id] = doc.data(); });
+        days = next; lsSave(); render();
+        if (first && !snap.metadata.fromCache) { first = false; applyHash(); }
+      }, (e) => setStatus(e && e.code === 'permission-denied' ? 'Permesso negato da Firebase: controlla le regole di sicurezza.' : 'Connessione ai dati persa: riapri l\'app.'));
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>
