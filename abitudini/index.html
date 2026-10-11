@@ -401,7 +401,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     </div>
 
     <div id="fViewPeso" hidden>
-      <section>
+      <section hidden>
         <div class="label" style="margin-bottom: 12px" id="pLbl">Peso di oggi</div>
         <div class="peso">
           <button class="pbtn" id="pMeno" aria-label="Meno 0,1 kg">−</button>
@@ -410,8 +410,8 @@ body { padding-top: env(safe-area-inset-top, 0px) }
         </div>
         <div class="prow"><span class="pinfo" id="pInfo"></span><button id="pDel" hidden>Togli il peso di questo giorno</button></div>
       </section>
-      <section style="margin-top: 22px">
-        <div class="label" style="margin-bottom: 12px">Andamento</div>
+      <section>
+        <div class="label" style="margin-bottom: 12px">Andamento del peso</div>
         <div class="seg" role="group" aria-label="Periodo del grafico" style="margin-bottom: 12px">
           <button id="pgMese" aria-pressed="true">Mensile</button>
           <button id="pgAnno" aria-pressed="false">Annuale</button>
