@@ -360,18 +360,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     </div>
 
     <div id="fViewSett">
-    <section>
-            <div class="fchart" id="fChart"></div>
-      <div class="flegend" style="margin-top: 10px">
-        <span><i class="sq" style="background: #4A86F0"></i>Basale</span>
-        <span><i class="sq" style="background: #EE6A3C"></i>Attive</span>
-        <span><i class="sq" style="background: #F2C230; height: 4px"></i>Mangiate</span>
-      </div>
-    </section>
-
-    <div class="fweek" id="fWeek"></div>
-
-      <section style="margin-top: 22px">
+      <section>
         <div class="label" style="margin-bottom: 12px">Bilancio calorie (mangiate − bruciate)</div>
         <div class="seg" role="group" aria-label="Periodo del bilancio" style="margin-bottom: 12px">
           <button id="bgSett" aria-pressed="true">Settimanale</button>
@@ -380,6 +369,19 @@ body { padding-top: env(safe-area-inset-top, 0px) }
         <div class="fchart" id="bChart"></div>
         <div class="pstats" id="bStats"></div>
       </section>
+
+      <section style="margin-top: 22px">
+        <div class="label" style="margin-bottom: 12px">Calorie degli ultimi 7 giorni</div>
+            <div class="fchart" id="fChart"></div>
+      <div class="flegend" style="margin-top: 10px">
+        <span><i class="sq" style="background: #4A86F0"></i>Basale</span>
+        <span><i class="sq" style="background: #EE6A3C"></i>Attive</span>
+        <span><i class="sq" style="background: #F2C230; height: 4px"></i>Mangiate</span>
+      </div>
+      </section>
+
+    <div class="fweek" id="fWeek"></div>
+
     </div>
 
     <div id="fViewPeso" hidden>
@@ -572,6 +574,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     const p = progress(h, dayOf(k));
     if (p >= 1) return 'background:' + h.color;
     if (h.kind === 'health' && h.unit !== 'run' && p > 0) return 'background:' + h.color + ';opacity:.35';
+    if (days[k] && days[k].fuori) return 'background:repeating-linear-gradient(45deg, rgba(91,192,235,.55) 0 3px, var(--empty) 3px 6px)';
     return 'background:var(--empty)';
   }
   function blocks(items) {
@@ -604,7 +607,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       const numColor = (wd === 0 || wd === 6) ? 'var(--soft)' : 'var(--ink)';
       const scColor = isPerfect(k) ? 'var(--ok)' : score >= STREAK_MIN ? 'var(--ink)' : 'var(--soft)';
       const pk = pesoOf(k);
-      html += '<div class="day' + (future ? ' fut' : '') + (k === today ? ' today' : '') + '"><b style="color:' + numColor + '">' + d + '</b><i>' + DAYS_SHORT[wd] + '</i></div>' + cells +
+      html += '<div class="day' + (future ? ' fut' : '') + (k === today ? ' today' : '') + '"><b style="color:' + numColor + '">' + d + '</b>' + (days[k] && days[k].fuori ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5BC0EB" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-label="fuori casa"><rect x="3.5" y="7.5" width="17" height="12" rx="1.5"/><path d="M9 7.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2.5"/></svg>' : '<i>' + DAYS_SHORT[wd] + '</i>') + '</div>' + cells +
         '<span class="pcell">' + (pk != null ? fmtKg(pk) : '') + '</span>' +
         '<span class="score' + (future ? ' fut' : '') + '" style="color:' + scColor + '">' + (future || !days[k] ? '' : score + '/' + HABITS.length) + '</span>';
     }
@@ -824,22 +827,23 @@ body { padding-top: env(safe-area-inset-top, 0px) }
     for (let i = n - 1; i >= 0; i--) ks.push(addDays(fSel, -i));
     const rows = ks.map((k) => { const f = fit(k); return { k, d: f.cibo != null && f.att != null ? Math.round(f.cibo - (f.att + f.bas)) : null }; });
     const vals = rows.filter((r) => r.d != null).map((r) => r.d);
-    const W = 340, H = 200, T = 22, B = 24, colW = W / n, bw = Math.min(30, colW * 0.7);
-    const m = Math.max(500, ...vals.map(Math.abs)) * 1.2, mid = T + (H - T - B) / 2, sc = (H - T - B) / 2 / m;
+    const W = 340, H = 200, T = 24, B = 24, L = 12, R = 12, colW = (W - L - R) / n;
+    const m = Math.max(500, ...vals.map(Math.abs)) * 1.25, mid = T + (H - T - B) / 2, sc = (H - T - B) / 2 / m;
+    const X = (i) => L + colW * i + colW / 2, Y = (v) => mid - v * sc;
     let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Bilancio calorie per giorno">';
-    rows.forEach((r, i) => {
-      const cx = colW * i + colW / 2, x = cx - bw / 2;
-      if (r.d != null) {
-        const h = Math.max(2, Math.abs(r.d) * sc), y = r.d > 0 ? mid - h : mid, col = r.d > 0 ? '#FF6B6B' : '#4CD68A';
-        svg += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + col + '"></rect>';
-        if (n === 7) svg += '<text x="' + cx.toFixed(1) + '" y="' + (r.d > 0 ? y - 5 : y + h + 12).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="800" fill="' + col + '" font-family="Archivo, sans-serif">' + (r.d > 0 ? '+' : r.d < 0 ? '−' : '') + nf(Math.abs(r.d)) + '</text>';
-      } else if (n === 7) {
-        svg += '<text x="' + cx.toFixed(1) + '" y="' + (mid - 6) + '" text-anchor="middle" font-size="10" fill="#9C9CA3" font-family="Archivo, sans-serif">n.d.</text>';
-      }
-      const dd = fromKey(r.k);
-      if (n === 7 || i % 5 === 4 || i === n - 1) svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" font-weight="' + (r.k === fSel ? 800 : 600) + '" fill="' + (r.k === fSel ? '#F4F4F1' : '#9C9CA3') + '" font-family="Archivo, sans-serif">' + (n === 7 ? DAYS_SHORT[dd.getDay()] + ' ' : '') + dd.getDate() + '</text>';
-    });
     svg += '<line x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '" stroke="#F4F4F1" stroke-width="2"></line>';
+    const pts = rows.map((r, i) => ({ ...r, i })).filter((r) => r.d != null);
+    if (pts.length > 1) svg += '<polyline points="' + pts.map((p) => X(p.i).toFixed(1) + ',' + Y(p.d).toFixed(1)).join(' ') + '" fill="none" stroke="#BDBDC2" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>';
+    pts.forEach((p) => {
+      const col = p.d > 0 ? '#FF6B6B' : '#4CD68A', y = Y(p.d);
+      svg += '<circle cx="' + X(p.i).toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (n === 7 ? 6 : 4) + '" fill="' + col + '" stroke="#323236" stroke-width="2"></circle>';
+      if (n === 7) svg += '<text x="' + X(p.i).toFixed(1) + '" y="' + (p.d > 0 ? y - 11 : y + 19).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="800" fill="' + col + '" font-family="Archivo, sans-serif">' + (p.d > 0 ? '+' : p.d < 0 ? '−' : '') + nf(Math.abs(p.d)) + '</text>';
+    });
+    rows.forEach((r, i) => {
+      const dd = fromKey(r.k);
+      if (n === 7 && r.d == null) svg += '<text x="' + X(i).toFixed(1) + '" y="' + (mid - 8) + '" text-anchor="middle" font-size="10" fill="#9C9CA3" font-family="Archivo, sans-serif">n.d.</text>';
+      if (n === 7 || i % 5 === 4 || i === n - 1) svg += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" font-weight="' + (r.k === fSel ? 800 : 600) + '" fill="' + (r.k === fSel ? '#F4F4F1' : '#9C9CA3') + '" font-family="Archivo, sans-serif">' + (n === 7 ? DAYS_SHORT[dd.getDay()] + ' ' : '') + dd.getDate() + '</text>';
+    });
     $('bChart').innerHTML = svg + '</svg>';
     const st = (v, l, c) => '<div><b' + (c ? ' style="color:' + c + '"' : '') + '>' + v + '</b><small>' + l + '</small></div>';
     if (vals.length) {
