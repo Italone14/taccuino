@@ -955,8 +955,9 @@ html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--in
 .vd-tbl div.old{opacity:1!important}.vd-tbl div.old>span{color:var(--muted)}
 .vd-h h2{color:var(--ink)}
 .pitem[hidden],#pnone[hidden]{display:none!important}
-.keypad .k{transition:transform .14s ease,background-color .14s ease,filter .14s ease!important}
-.keypad .k.pr,.keypad .k:active{transform:scale(.9)!important;filter:brightness(2.1)!important;transition:none!important}
+.keypad .k{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:transform .1s ease,background-color .1s ease!important}
+.keypad .k.pr{transform:scale(.92)!important;background:#5a5d64!important;transition:none!important}
+html:not(.dark) .keypad .k.pr{background:#d4d1ca!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1894,7 +1895,7 @@ function drawTxe() {
     <div class="keypad">${keys.map(([n, l]) => `<button type="button" class="k" data-k="${n}"><b>${n}</b><small>${l}</small></button>`).join('')}<span></span><button type="button" class="k" data-k="0"><b>0</b></button><button type="button" class="k kb" data-k="b" aria-label="Cancella">${SV('M9 6h11v12H9l-6-6zM12 9.5l5 5M17 9.5l-5 5')}</button></div>`;
   el.querySelectorAll('[data-sub]').forEach(b => b.onclick = ev => { ev.stopPropagation(); S.n = $('xNote').value; S.sub = b.dataset.sub; S.rec = S.sub === 'm' ? 'month' : ''; drawTxe(); });
   el.querySelectorAll('.ty').forEach(b => b.onclick = () => { S.n = $('xNote').value; if (S.t !== b.dataset.t) { S.t = b.dataset.t; S.c = null; subDefault(); if (S.t === 't' && !S.to) S.to = accUsage().find(x => x !== S.a); } drawTxe(); });
-  el.querySelectorAll('.k').forEach(b => { b.onclick = () => keyIn(b.dataset.k); b.addEventListener('pointerdown', () => { b.classList.remove('pr'); void b.offsetWidth; b.classList.add('pr'); clearTimeout(b._pr); b._pr = setTimeout(() => b.classList.remove('pr'), 180); try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} }); });
+  el.querySelectorAll('.k').forEach(b => { b.addEventListener('pointerdown', ev => { ev.preventDefault(); keyIn(b.dataset.k); b.classList.add('pr'); clearTimeout(b._pr); b._pr = setTimeout(() => b.classList.remove('pr'), 120); }); b.onclick = ev => { if (ev.detail === 0) keyIn(b.dataset.k); }; });
   el.querySelectorAll('.xrow').forEach(b => b.onclick = ev => { if (ev.target.id === 'xDate') return; const k = b.dataset.row; S.n = $('xNote').value; if (k === 'date') { const d = $('xDate'); try { d.showPicker(); } catch (e) { d.focus(); d.click(); } return; } S.pick = k; drawTxe(); });
   $('xDate').onchange = () => { if ($('xDate').value) { S.d = $('xDate').value; S.n = $('xNote').value; drawTxe(); } };
   $('xNote').oninput = () => { S.n = $('xNote').value; };
@@ -2214,7 +2215,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-12.2';
+const APP_VER = '2026-10-12.3';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
