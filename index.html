@@ -1077,19 +1077,20 @@ const DEFAULT_ACCOUNTS = [
 ];
 const BASE_TS = Date.UTC(2026, 9, 9, 12, 23); // saldi dello screenshot: 9 ottobre 2026, 14:23
 const DEFAULT_VAR = [
-  {k:'viaggi',name:'Viaggi e trasporti',limit:140,cats:['Viaggi','Vacanze','Trasferte','CROAZIA','Trasporti']},
-  {k:'veicoli',name:'Moto e auto',limit:14,cats:['Moto','Benzina','Auto','Assicurazione']},
-  {k:'arturo',name:'Arturo',limit:72,cats:['Arturo']},
-  {k:'ristoranti',name:'Ristoranti e bar',limit:50,cats:['Ristorante','Spesa']},
-  {k:'regali',name:'Regali',limit:50,cats:['Regalo','Compleanno']},
-  {k:'vestiti',name:'Vestiti',limit:40,cats:['Vestiti']},
-  {k:'shopping',name:'Shopping e casa',limit:26,cats:['Shopping Vario','Online','Libri','Stampe Foto','Cancelleria']},
-  {k:'cura',name:'Cura personale',limit:29,cats:['Cura personale']},
-  {k:'tecnologia',name:'Tecnologia',limit:30,cats:['Tecnologia','App','Drone']},
+  {k:'viaggi',name:'Viaggi e trasporti',limit:139,cats:['Viaggi','Vacanze','Trasferte','CROAZIA','Trasporti']},
+  {k:'veicoli',name:'Moto e auto',limit:13,cats:['Moto','Benzina','Auto','Assicurazione']},
+  {k:'arturo',name:'Arturo',limit:70,cats:['Arturo']},
+  {k:'ristoranti',name:'Ristoranti e bar',limit:49,cats:['Ristorante','Spesa']},
+  {k:'regali',name:'Regali',limit:40,cats:['Regalo','Compleanno']},
+  {k:'vestiti',name:'Vestiti',limit:39,cats:['Vestiti']},
+  {k:'shopping',name:'Shopping e casa',limit:26,cats:['Shopping Vario','Online','Stampe Foto','Cancelleria','Maglie Calcio']},
+  {k:'cura',name:'Cura personale',limit:28,cats:['Cura personale']},
+  {k:'tecnologia',name:'Tecnologia',limit:29,cats:['Tecnologia','App','Drone']},
   {k:'proteine',name:'Proteine e integratori',limit:13,cats:[],rule:'Palestra senza l\'abbonamento da 175 €'},
-  {k:'svago',name:'Svago',limit:12,cats:['Divertimento','Giochi','Giochi da Tavolo','🎰','Juventus','Maglie Calcio','Carte Pokemon','Corsi','YT','Project']},
+  {k:'svago',name:'Svago',limit:11,cats:['Divertimento','Giochi','Giochi da Tavolo','🎰','Juventus','Carte Pokemon','YT','Project']},
+  {k:'formazione',name:'Formazione',limit:20,cats:['Corsi','Libri']},
   {k:'abb_extra',name:'Abbonamenti extra',limit:8,cats:[],rule:'Abbonamenti non mensili'},
-  {k:'imprevisti',name:'Imprevisti e varie',limit:14.44,cats:['Vario','Pagamenti','Contanti','P2P','Bonus','Vendite']},
+  {k:'imprevisti',name:'Imprevisti e varie',limit:13.44,cats:['Vario','Pagamenti','Contanti','P2P','Bonus','Vendite']},
 ];
 const DEFAULT_FIX = [
   {k:'dentista',name:'Dentista',amount:200,cats:[],note:'Invisalign, in Cura personale'},
@@ -1114,7 +1115,7 @@ try { const sd = parseInt(localStorage.getItem('tac-startDay'), 10); if (sd >= 1
 const ACC_REN = { 'Amex Italo': 'Italo', 'Amex Old': 'AMEX' }; const renAcc = e => { if (e && ACC_REN[e.a]) e.a = ACC_REN[e.a]; if (e && ACC_REN[e.to]) e.to = ACC_REN[e.to]; return e; };
 let db = null, HIST = {}, NEWS = [], CONF = {}, ready = { h: false, n: false, c: false };
 let txFilter = { q: '', cat: null, type: null }, searchOpen = false, trendCat = 'ristoranti';
-const VAR_REV = 3;
+const VAR_REV = 4;
 const VAR = () => DEFAULT_VAR.map(v => { const o = (CONF.varRev === VAR_REV ? CONF.var || [] : []).find(x => x.k === v.k); return { ...v, limit: o && typeof o.limit === 'number' ? o.limit : v.limit }; }), FIX = () => DEFAULT_FIX;
 const eur = v => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const eur0 = v => (Math.round(v) < 0 ? '-' : '') + String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
@@ -2210,7 +2211,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-11.1';
+const APP_VER = '2026-10-12.1';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
