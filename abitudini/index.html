@@ -209,6 +209,13 @@ textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500
 .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; min-height: 36px }
 .prow .pinfo { font-size: 12px; color: var(--muted); font-weight: 600 }
 .prow button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; text-decoration: underline; padding: 8px 0 }
+.psel { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border-left: 4px solid #FFC93C; padding: 10px 12px; margin-top: 10px }
+.psel b { font-size: 15px } .psel small { display: block; font-size: 12px; color: var(--muted); font-weight: 600 }
+.pdel { border: 1.5px solid var(--danger); background: transparent; color: var(--danger); font: inherit; font-size: 12px; font-weight: 800; padding: 8px 10px; border-radius: 0 }
+.plist { display: flex; flex-direction: column }
+.plist div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px }
+.plist div b { font-variant-numeric: tabular-nums } .plist div span { color: var(--muted); font-size: 13px; flex: 1 }
+.plist .px { border: 0; background: none; color: var(--soft); font-size: 20px; line-height: 1; padding: 4px 8px }
 .pstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px }
 .pstats div { background: var(--surface); padding: 10px; display: flex; flex-direction: column; gap: 3px }
 .pstats b { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums }
@@ -417,7 +424,10 @@ body { padding-top: env(safe-area-inset-top, 0px) }
           <button id="pgAnno" aria-pressed="false">Annuale</button>
         </div>
         <div class="fchart" id="pChart"></div>
+        <div class="psel" id="pSelBox" hidden></div>
         <div class="pstats" id="pStats"></div>
+        <div class="label" style="margin: 20px 0 8px">Pesate registrate</div>
+        <div class="plist" id="pList"></div>
       </section>
     </div>
     <p class="fnote" id="fFoot"></p>
@@ -877,7 +887,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   function pesoOf(k) { const d = days[k]; return d && typeof d.peso === 'number' ? d.peso : null; }
   function pesiOrdinati() { return Object.keys(days).filter((k) => pesoOf(k) != null).sort().map((k) => ({ k, v: pesoOf(k) })); }
   function ultimoPesoPrima(k) { const a = pesiOrdinati().filter((x) => x.k <= k); return a.length ? a[a.length - 1] : null; }
-  let pesoTimer = null;
+  let pesoTimer = null, pSel = null;
   function setPeso(v) {
     v = Math.round(Math.max(30, Math.min(250, v)) * 10) / 10;
     const d = dayOf(fSel); d.peso = v; days[fSel] = d; renderPeso();
@@ -923,7 +933,9 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       const few = pts.length <= 12;
       pts.forEach((p, i) => {
         const last = i === pts.length - 1;
-        if (few || last) svg += '<circle cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="' + (last ? 5.5 : 4) + '" fill="' + (last ? '#FFC93C' : '#323236') + '" stroke="#FFC93C" stroke-width="2.5"></circle>';
+        const sel = p.k === pSel;
+        svg += '<circle cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="' + (sel ? 7 : last ? 5.5 : few ? 4 : 3) + '" fill="' + (sel || last ? '#FFC93C' : '#323236') + '" stroke="' + (sel ? '#F4F4F1' : '#FFC93C') + '" stroke-width="2.5"></circle>';
+        svg += '<circle data-k="' + p.k + '" cx="' + X(p.k).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="14" fill="transparent" style="cursor:pointer"></circle>';
         if (few || last) svg += '<text x="' + X(p.k).toFixed(1) + '" y="' + (Y(p.v) - 10).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="800" fill="#F4F4F1" font-family="Archivo, sans-serif">' + fmtKg(p.v) + '</text>';
       });
     } else {
@@ -939,7 +951,40 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       $('pStats').innerHTML = st(fmtKg(Math.min(...pts.map((p) => p.v))), 'minimo') + st(fmtKg(Math.max(...pts.map((p) => p.v))), 'massimo') +
         st(pts.length > 1 ? (ch > 0 ? '+' : ch < 0 ? '−' : '±') + fmtKg(Math.abs(ch)) : '–', pMode === 'mese' ? 'nel mese' : 'nell\'anno');
     } else $('pStats').innerHTML = '';
+    // pesata selezionata dal grafico + elenco
+    const dataLunga = (k) => { const d = fromKey(k); return WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
+    const sv = pSel ? pesoOf(pSel) : null;
+    $('pSelBox').hidden = sv == null;
+    if (sv != null) $('pSelBox').innerHTML = '<div><b>' + fmtKg(sv) + ' kg</b><small>' + dataLunga(pSel) + '</small></div><button class="pdel" data-del="' + pSel + '">Elimina</button>';
+    const tutte = pesiOrdinati().slice().reverse();
+    $('pList').innerHTML = tutte.length ? tutte.map((x) => '<div><span>' + dataLunga(x.k) + '</span><b>' + fmtKg(x.v) + ' kg</b><button class="px" data-del="' + x.k + '" aria-label="Elimina peso del ' + dataLunga(x.k) + '">×</button></div>').join('') : '<div><span>Nessun peso registrato</span></div>';
   }
+  $('pChart').addEventListener('click', (e) => { const c = e.target.closest('[data-k]'); pSel = c ? (pSel === c.dataset.k ? null : c.dataset.k) : null; renderPeso(); });
+  const delPeso = (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    const k = b.dataset.del;
+    if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = 'Conferma'; b.classList.add('pdel'); setTimeout(() => { if (b.isConnected) renderPeso(); }, 4000); return; }
+    const x = dayOf(k); delete x.peso; if (pSel === k) pSel = null; save(k, x);
+  };
+  $('pSelBox').addEventListener('click', delPeso);
+  $('pList').addEventListener('click', delPeso);
+  // scorrere col dito: da sinistra a destra = giorno prima, da destra a sinistra = giorno dopo
+  (function () {
+    let x0 = null, y0 = 0, t0 = 0;
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || (e.target.closest && e.target.closest('input, textarea, .mgrid, .ygrid'))) { x0 = null; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (x0 == null || (tab !== 'oggi' && tab !== 'fitness')) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - t0 > 800) return;
+      const t = todayKey();
+      if (tab === 'oggi') { const n = addDays(selected, dx > 0 ? -1 : 1); if (n > t) return; selected = n; closeEdit(); }
+      else { const n = addDays(fSel, dx > 0 ? -1 : 1); if (n > t) return; fSel = n; }
+      render();
+    }, { passive: true });
+  })();
   $('fsSett').addEventListener('click', () => { fMode = 'sett'; prefSave(); render(); });
   $('fsPeso').addEventListener('click', () => { fMode = 'peso'; prefSave(); render(); });
   $('pgMese').addEventListener('click', () => { pMode = 'mese'; prefSave(); render(); });
