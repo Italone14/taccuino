@@ -958,6 +958,11 @@ html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--in
 .keypad .k{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:transform .1s ease,background-color .1s ease!important}
 .keypad .k.pr{transform:scale(.92)!important;background:#5a5d64!important;transition:none!important}
 html:not(.dark) .keypad .k.pr{background:#d4d1ca!important}
+.pg-row[data-bv]{cursor:pointer;-webkit-tap-highlight-color:transparent}.pg-row[data-bv]:active{opacity:.6}
+.vm-list{max-height:52vh;overflow:auto;margin-top:10px}
+.vm-row{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--dash);padding:9px 0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.vm-row:active{opacity:.6}.vm-t{flex:1;min-width:0}.vm-t b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-t small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}.vm-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1591,6 +1596,20 @@ function bindBal(v) {
 }
 
 /* dettaglio di una voce del salvadanaio */
+function openVoceMonth(k) {
+  const v = VAR().find(x => x.k === k); if (!v) return;
+  const key = curKey(), [yy, mm] = key.split('-').map(Number);
+  const xs = monthTx(key).filter(e => { const b = budgetKey(e); return b && b[0] === 'v' && b[1] === k; }).sort((a, b) => (b.d || '').localeCompare(a.d || '') || (b.created || 0) - (a.created || 0));
+  const tot = sumBy(xs, e => e.v), left = v.limit - tot;
+  const dd = d => { const x = D(d); return `${x.getDate()} ${ML[x.getMonth()].slice(0, 3)}`; };
+  $('sheet').innerHTML = `<div class="grab"></div><div class="vd-h">${icon(v.cats[0] || 'Vario')}<div><h2>${esc(v.name)}</h2><small>${ML[mm - 1]} ${yy} · ${eur(tot)} su ${eur(v.limit)} · ${left < 0 ? 'sforato ' + eur(-left) : 'restano ' + eur(left)}</small></div></div>
+    <div class="vm-list">${xs.length ? xs.map(e => `<button type="button" class="vm-row" data-vtx="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">${icon(e.c, true)}<span class="vm-t"><b>${esc(e.n || e.c)}</b><small>${esc(e.n ? e.c + ' · ' : '')}${dd(e.d)}${e.a ? ' · ' + esc(e.a) : ''}</small></span><span class="vm-v">${eur(e.v)}</span></button>`).join('') : `<p class="status" style="margin:18px 0">Nessuna spesa in questa voce a ${ML[mm - 1]}.</p>`}</div>
+    <div class="actions"><button type="button" class="btn sec" id="vmClose">Chiudi</button><button type="button" class="btn pri" id="vmMore">Mese per mese</button></div>`;
+  $('sheet').hidden = $('sbg').hidden = false; $('sheet').onsubmit = null;
+  $('vmClose').onclick = closeSheet;
+  $('vmMore').onclick = () => openVoce(k);
+  $('sheet').querySelectorAll('[data-vtx]').forEach(b => b.onclick = () => { closeSheet(); openSheet(findTx(b.dataset.vtx)); });
+}
 function openVoce(k) {
   const v = VAR().find(x => x.k === k); if (!v) return;
   const subs = [...v.cats, ...(CONF.cats || []).filter(c => c.type === 's' && c.voce === k).map(c => c.name)];
@@ -1632,7 +1651,7 @@ function viewInsight() {
     <div class="pg-hero"><span>${B.isNow ? 'Puoi ancora spendere' : 'Ti è rimasto'}</span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? '−' : ''}${eur(Math.abs(B.left))}</b>
       <small>${eur0(B.spent)} su ${eur0(B.limit)} di spese variabili${B.isNow && B.left > 0 ? ` · ${eur(B.left / B.daysLeft)} al giorno` : ''}</small></div>
     <div class="bb-list">${VAR().map(v => ({ v, s2: B.spentV[v.k] || 0 })).map(x => ({ ...x, l: x.v.limit - x.s2 })).sort((a, b) => b.l - a.l).map(({ v, s2, l }) => { const c0 = v.cats[0] || 'Vario';
-      return `<div class="pg-row">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur0(s2)} su ${eur0(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? '−' : ''}${eur(Math.abs(l))}</b></div>`; }).join('')}</div>
+      return `<div class="pg-row" role="button" tabindex="0" data-bv="${v.k}">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur0(s2)} su ${eur0(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? '−' : ''}${eur(Math.abs(l))}</b></div>`; }).join('')}</div>
     <div class="r-sub">Spese fisse</div>
     <table class="r-tbl"><tbody>${FIX().map(f => { const s2 = B.spentF[f.k] || 0, done = s2 >= f.amount - .01; return `<tr><td>${esc(f.name)} <small>${esc(f.note || '')}</small></td><td>${eur(s2)} <span class="r-dim2">di ${eur(f.amount)}</span><br>${done ? '<span class="r-ok">pagato</span>' : s2 > 0 ? '<span class="r-part">in parte</span>' : '<span class="r-no">da pagare</span>'}</td></tr>`; }).join('')}</tbody></table>
     <button type="button" class="r-link" id="editBudget">Modifica i limiti</button></section>`;
@@ -1777,6 +1796,7 @@ function bind() {
   v.querySelectorAll('[data-subon]').forEach(b => b.onclick = () => subOn(b.dataset.subon));
   bindBal(v);
   v.querySelectorAll('[data-pgv]').forEach(b => b.onclick = () => openVoce(b.dataset.pgv));
+  v.querySelectorAll('[data-bv]').forEach(b => b.onclick = () => openVoceMonth(b.dataset.bv));
   v.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { sTab = b.dataset.stab; render(); scrollTo(0, 0); });
   const eb = $('editBudget'); if (eb) eb.onclick = openBudgetEditor;
   const os = $('openSettings'); if (os) os.onclick = () => openSettings('main');
@@ -2215,7 +2235,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-12.3';
+const APP_VER = '2026-10-19.1';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
