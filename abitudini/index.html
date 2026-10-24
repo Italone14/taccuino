@@ -597,6 +597,11 @@ body { padding-top: env(safe-area-inset-top, 0px) }
 
   // ---------- STORICO ----------
   function cellStyle(h, k, today) {
+    // corsa e palestra: bordo spesso del loro colore, così risaltano
+    if (h.id === 'corsa' || h.id === 'palestra') return cellBase(h, k, today) + ';box-shadow:inset 0 0 0 2.5px ' + h.color;
+    return cellBase(h, k, today);
+  }
+  function cellBase(h, k, today) {
     if (k > today) return 'background:var(--future)';
     const p = progress(h, dayOf(k));
     if (p >= 1) return 'background:' + h.color;
