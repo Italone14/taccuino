@@ -112,6 +112,11 @@ textarea { min-height: 70px; resize: vertical; font-size: 14px; font-weight: 500
 .empty-note { background: var(--surface); border-left: 6px solid var(--yellow); padding: 12px 14px; font-size: 13px; color: var(--muted); line-height: 1.5 }
 
 .blocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; border-bottom: 4px solid var(--ink) }
+.block.orange { cursor: pointer }
+.perf { background: var(--surface); border-left: 4px solid var(--orange); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px }
+.perf b { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.perf div { display: flex; flex-wrap: wrap; gap: 6px }
+.perf div span { background: var(--paper); padding: 6px 9px; font-size: 13px; font-weight: 700 }
 .block { padding: 10px 10px 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-width: 0 }
 .block b { font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
 .block span { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; line-height: 1.25 }
@@ -321,6 +326,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
 
     <div id="hMese" class="view">
       <div class="blocks" id="mBlocks"></div>
+      <div class="perf" id="mPerf" hidden></div>
       <div>
         <div class="label" style="margin-bottom: 8px">Giorni × abitudini</div>
         <div class="mgrid" id="mGrid"></div>
@@ -334,6 +340,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
 
     <div id="hAnno" class="view" hidden>
       <div class="blocks" id="yBlocks"></div>
+      <div class="perf" id="yPerf" hidden></div>
       <div class="ycards" id="yCards"></div>
     </div>
   </div>
@@ -598,7 +605,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
   // ---------- STORICO ----------
   function cellStyle(h, k, today) {
     // corsa e palestra: bordo spesso del loro colore, così risaltano
-    if (h.id === 'corsa' || h.id === 'palestra') return cellBase(h, k, today) + ';box-shadow:inset 0 0 0 2.5px ' + h.color;
+    if (h.id === 'corsa' || h.id === 'palestra') return cellBase(h, k, today) + ';box-shadow:inset 0 0 0 1.5px ' + h.color + 'AA';
     return cellBase(h, k, today);
   }
   function cellBase(h, k, today) {
@@ -655,7 +662,15 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       { c: 'yellow', v: elapsed ? pct + '%' : '–', l: 'del mese finora', h: 86 },
       { c: 'orange', v: perfect, l: perfect === 1 ? 'giorno perfetto' : 'giorni perfetti', h: 72 }
     ]);
+    const pk = []; for (let d = 1; d <= nDays; d++) { const k = keyOf(new Date(hYear, hMonth, d)); if (k <= today && k >= first && isPerfect(k)) pk.push(k); }
+    showPerf('mPerf', pk);
   }
+  let perfOpen = false;
+  function showPerf(id, ks) {
+    const el = $(id); el.hidden = !perfOpen;
+    el.innerHTML = '<b>' + (ks.length ? 'Giorni perfetti' : 'Nessun giorno perfetto in questo periodo') + '</b>' + (ks.length ? '<div>' + ks.map((k) => { const d = fromKey(k); return '<span>' + DAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3) + '</span>'; }).join('') + '</div>' : '');
+  }
+  ['mBlocks', 'yBlocks'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target.closest('.block.orange')) { perfOpen = !perfOpen; render(); } }));
 
   function renderAnno() {
     const today = todayKey(), first = firstKey();
@@ -695,6 +710,7 @@ body { padding-top: env(safe-area-inset-top, 0px) }
       { c: 'yellow', v: elapsed ? Math.round(doneAll / (elapsed * HABITS.length) * 100) + '%' : '–', l: 'completamento', h: 86 },
       { c: 'orange', v: perfect, l: perfect === 1 ? 'giorno perfetto' : 'giorni perfetti', h: 72 }
     ]);
+    showPerf('yPerf', keys.filter((k) => k && k <= today && k >= first && isPerfect(k)));
   }
 
   function renderStorico() {
