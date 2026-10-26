@@ -622,8 +622,8 @@ button{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .clist,.m-group,.k-list,.xrows{background:var(--card)!important;border-radius:18px!important;box-shadow:none!important;padding:0 0 0 16px!important;overflow:hidden}
 .crow,.tx{min-height:56px;padding:10px 16px 10px 0!important;grid-template-columns:34px 1fr auto!important;gap:2px 12px!important;transition:background .15s}
 .crow::after,.tx::after{left:46px!important;right:0!important;border-bottom:.5px solid var(--dash)!important}
-.crow:active,.tx:active,.k-main:active,.chk:active{background:var(--press)}
-.crow:active,.tx:active{box-shadow:-16px 0 0 var(--press)}
+
+
 .crow .nm,.tx .nm{font-size:17px!important;font-weight:400!important}
 .crow .amt,.tx .amt{font-size:17px!important;font-weight:500!important;font-variant-numeric:tabular-nums}
 .tx .ac{font-size:13px!important;color:var(--muted)!important}
@@ -810,7 +810,7 @@ main#view{padding-bottom:calc(var(--bx) + 110px + env(safe-area-inset-bottom,0px
 .pcell .pg.em{font-size:34px;line-height:1;width:auto;height:auto;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .pcell .pg.ltr{font-size:30px;font-weight:800;width:auto;height:auto}
 .pcell[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 7%,transparent)!important;border-radius:16px}
-.pcell:active{background:color-mix(in srgb,var(--ink) 10%,transparent)!important}
+
 .pnew{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--ink);font:inherit;font-size:16px;font-weight:500;cursor:pointer;padding:6px 0;white-space:nowrap}
 .pnew svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
 /* icone piene (come nel Taccuino originale) */
@@ -855,7 +855,7 @@ html.rows-dash .crow:last-child::after{display:block!important}
 html.rows-dash .k-row+.k-row::before{display:none!important}
 html.rows-dash .k-row::after{content:"";position:absolute;left:62px;right:4px;bottom:0;border-bottom:1.5px dashed var(--dl)}
 html.rows-dash .sw .tx{background:var(--bg)!important}
-html.rows-dash .crow:active,html.rows-dash .tx:active{box-shadow:none!important}
+
 html.rows-dash .m-day{margin-top:26px!important}
 html.rows-dash .k-row,html.rows-dash .k-main{background:none!important}
 /* tema scuro: sfondo grigio scuro come i riquadri, niente nero */
@@ -958,15 +958,16 @@ html.dark body.light .sheet,html.dark body:not(.light) .sheet{--ink:#f1f1ef;--in
 .keypad .k{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:transform .1s ease,background-color .1s ease!important}
 .keypad .k.pr{transform:scale(.92)!important;background:#5a5d64!important;transition:none!important}
 html:not(.dark) .keypad .k.pr{background:#d4d1ca!important}
-.pg-row[data-bv]{cursor:pointer;-webkit-tap-highlight-color:transparent}.pg-row[data-bv]:active{opacity:.6}
+.pg-row[data-bv]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .vm-list{max-height:52vh;overflow:auto;margin-top:10px}
 .vm-row{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--dash);padding:9px 0;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.vm-row:active{opacity:.6}.vm-t{flex:1;min-width:0}.vm-t b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-t{flex:1;min-width:0}.vm-t b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vm-t small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}.vm-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.xrow-b{cursor:pointer;margin:6px 0 2px;border-bottom:1px dashed var(--dash)!important}.xrow-b:active{opacity:.6}.xrow-b b.pos,.vm-v.pos{color:var(--good,#1f7a4d)}
+.xrow-b{cursor:pointer;margin:6px 0 2px;border-bottom:1px dashed var(--dash)!important}.xrow-b b.pos,.vm-v.pos{color:var(--good,#1f7a4d)}
 .xtra{color:var(--good,#1f7a4d);font-weight:600}
-button.tap,[role="button"].tap,a.tap,.tab.tap,.fab.tap,label.btn.tap{scale:.94;opacity:.65;transition:scale 0s,opacity 0s!important}
-button,[role="button"],a,.tab,.fab{transition-property:scale,opacity,transform,background-color,color,box-shadow;transition-duration:.15s;-webkit-tap-highlight-color:transparent}
+.tap{scale:.94;opacity:.65;transition:scale 0s,opacity 0s!important}
+.fab,.tab,.btn,.ib,.chip,.pnew,.ty,.eye,.pg-xb,.r-chip{transition-property:scale,opacity,transform,background-color,color,box-shadow;transition-duration:.15s}
+button,[role="button"],a{-webkit-tap-highlight-color:transparent}
 .pg-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:8px 0 0}.pg-top .pg-hero{margin:0}
 .pg-xb{background:none;border:0;padding:0;text-align:right;cursor:pointer;color:inherit;font:inherit}
 .pg-xb span{display:block;font-size:13px;font-weight:600;color:#858a82}.pg-xb b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:6px;color:#858a82}.pg-xb b.pos{color:#1f7a4d}
@@ -2263,7 +2264,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-26.5';
+const APP_VER = '2026-10-26.6';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
@@ -2329,9 +2330,12 @@ const CKEY = 'tac-cache-v1'; let CACHED = null;
 function loadCache() { if (window.claude) return false; try { const c = JSON.parse(localStorage.getItem(CKEY) || 'null'); if (!c || !c.HIST) return false; HIST = c.HIST; NEWS = c.NEWS || []; CONF = c.CONF || {}; window.CONF = CONF; CACHED = c.uid || null; return true; } catch (e) { return false; } }
 function saveCache() { if (window.claude) return; clearTimeout(saveCache.t); saveCache.t = setTimeout(() => { if (!(ready.h && ready.n && ready.c)) return; try { localStorage.setItem(CKEY, JSON.stringify({ uid: FBUSER ? FBUSER.uid : null, at: Date.now(), HIST, NEWS, CONF })); } catch (e) {} }, 800); }
 function dropCache() { try { localStorage.removeItem(CKEY); } catch (e) {} }
-/* ---------- feedback al tocco su tutti i pulsanti ---------- */
-document.addEventListener('pointerdown', ev => { const b = ev.target.closest && ev.target.closest('button,[role="button"],a,.tab,.fab,label.btn'); if (!b || b.classList.contains('k') || b.disabled) return; b.classList.add('tap'); const off = () => { setTimeout(() => b.classList.remove('tap'), 90); ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.removeEventListener(t, off)); }; ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.addEventListener(t, off)); }, { passive: true });
-document.addEventListener('touchstart', () => {}, { passive: true });
+/* ---------- feedback al tocco: solo sui pulsanti veri, mai sulle righe delle liste (niente effetto mentre scorri) ---------- */
+const TAP_SEL = '.fab,.tab,.btn,.ib,.chip,.pnew,.ty,.eye,.pg-xb,[data-itab],[data-stab],.r-chip,.r-link,.linkbtn,.sub-btn,.k-btn,.sw-ed,.sw-del,#eyeBtn,.xtop button,.topbar button';
+document.addEventListener('pointerdown', ev => { const b = ev.target.closest && ev.target.closest(TAP_SEL); if (!b || b.disabled) return; const x0 = ev.clientX, y0 = ev.clientY; b.classList.add('tap');
+  const off = () => { setTimeout(() => b.classList.remove('tap'), 90); window.removeEventListener('pointerup', off); window.removeEventListener('pointercancel', off); window.removeEventListener('pointermove', mv); window.removeEventListener('scroll', off, true); };
+  const mv = e => { if (Math.abs(e.clientX - x0) > 6 || Math.abs(e.clientY - y0) > 6) { b.classList.remove('tap'); off(); } };
+  window.addEventListener('pointerup', off); window.addEventListener('pointercancel', off); window.addEventListener('pointermove', mv, { passive: true }); window.addEventListener('scroll', off, true); }, { passive: true });
 const HAD_CACHE = loadCache();
 render();
 (async () => {
