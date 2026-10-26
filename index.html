@@ -965,6 +965,8 @@ html:not(.dark) .keypad .k.pr{background:#d4d1ca!important}
 .vm-t small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}.vm-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .xrow-b{cursor:pointer;margin:6px 0 2px;border-bottom:1px dashed var(--dash)!important}.xrow-b:active{opacity:.6}.xrow-b b.pos,.vm-v.pos{color:var(--good,#1f7a4d)}
 .xtra{color:var(--good,#1f7a4d);font-weight:600}
+button.tap,[role="button"].tap,a.tap,.tab.tap,.fab.tap,label.btn.tap{scale:.94;opacity:.65;transition:scale 0s,opacity 0s!important}
+button,[role="button"],a,.tab,.fab{transition-property:scale,opacity,transform,background-color,color,box-shadow;transition-duration:.15s;-webkit-tap-highlight-color:transparent}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -2198,7 +2200,7 @@ function bindSettings() {
   $('sBack').onclick = () => { if (v === 'main') closeSettings(); else { SET = { view: v === 'catEdit' ? 'cats' : v === 'accNew' ? 'accs' : 'main' }; drawSettings(); } };
   if ($('sImport')) $('sImport').onchange = async () => { const f = $('sImport').files[0]; if (!f) return; toast('Importo…'); try { const n = await importData(db, JSON.parse(await f.text())); toast(`Importati ${n} documenti`); } catch (e) { toast(e && e.code === 'permission-denied' ? 'Permesso negato: controlla le regole su Firebase' : 'Import non riuscito: ' + ((e && (e.code || e.message)) || 'errore')); } };
   if ($('sExport')) $('sExport').onclick = () => exportData().then(() => toast('Backup scaricato')).catch(() => toast('Non sono riuscito: riprova'));
-  if ($('sLogout')) $('sLogout').onclick = () => { closeSettings(); firebase.auth().signOut().then(() => location.reload()); };
+  if ($('sLogout')) $('sLogout').onclick = () => { closeSettings(); dropCache(); firebase.auth().signOut().then(() => location.reload()); };
   el.querySelectorAll('[data-rows]').forEach(b => b.onclick = () => { setRows(b.dataset.rows, true); drawSettings(); });
   el.querySelectorAll('[data-bx]').forEach(b => b.onclick = () => { setBx(b.dataset.bx, true); drawSettings(); });
   el.querySelectorAll('[data-style-set]').forEach(b => b.onclick = () => { setStyle(b.dataset.styleSet); drawSettings(); });
@@ -2253,7 +2255,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-26.1';
+const APP_VER = '2026-10-26.2';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
@@ -2314,12 +2316,22 @@ async function exportData() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: 'application/json' })); a.download = `taccuino-backup-${iso(new Date())}.json`; a.click();
 }
 
+/* ---------- copia locale dei dati: l'app si apre subito con gli ultimi dati visti ---------- */
+const CKEY = 'tac-cache-v1'; let CACHED = null;
+function loadCache() { if (window.claude) return false; try { const c = JSON.parse(localStorage.getItem(CKEY) || 'null'); if (!c || !c.HIST) return false; HIST = c.HIST; NEWS = c.NEWS || []; CONF = c.CONF || {}; window.CONF = CONF; CACHED = c.uid || null; return true; } catch (e) { return false; } }
+function saveCache() { if (window.claude) return; clearTimeout(saveCache.t); saveCache.t = setTimeout(() => { if (!(ready.h && ready.n && ready.c)) return; try { localStorage.setItem(CKEY, JSON.stringify({ uid: FBUSER ? FBUSER.uid : null, at: Date.now(), HIST, NEWS, CONF })); } catch (e) {} }, 800); }
+function dropCache() { try { localStorage.removeItem(CKEY); } catch (e) {} }
+/* ---------- feedback al tocco su tutti i pulsanti ---------- */
+document.addEventListener('pointerdown', ev => { const b = ev.target.closest && ev.target.closest('button,[role="button"],a,.tab,.fab,label.btn'); if (!b || b.classList.contains('k') || b.disabled) return; b.classList.add('tap'); const off = () => { setTimeout(() => b.classList.remove('tap'), 90); ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.removeEventListener(t, off)); }; ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.addEventListener(t, off)); }, { passive: true });
+document.addEventListener('touchstart', () => {}, { passive: true });
+const HAD_CACHE = loadCache();
 render();
 (async () => {
   if (window.claude && window.claude.use) { try { db = await window.claude.use('db'); } catch (e) { db = null; } if (db) document.title = 'Taccuino · anteprima'; }
   if (!db) { if (typeof firebase === 'undefined') { $('status').textContent = 'Connessione assente: riapri l\'app.'; return; } db = await fbLogin(); }
   if (!db) return;
-  const done = k => { ready[k] = true; if (ready.h && ready.n && ready.c) { $('status').textContent = ''; genRecurring(); } render(); };
+  if (CACHED && FBUSER && CACHED !== FBUSER.uid) { HIST = {}; NEWS = []; CONF = {}; dropCache(); }
+  const done = k => { ready[k] = true; const all = ready.h && ready.n && ready.c; if (all) { $('status').textContent = ''; genRecurring(); saveCache(); } if (all || HAD_CACHE) render(); };
   const fail = e => { const m = e && e.code === 'permission-denied' ? 'Permesso negato: pubblica le regole di sicurezza su Firebase (Firestore → Regole).' : 'Dati non raggiungibili: riapri l\'app.'; $('status').textContent = m; toast(m); };
   subscribeAll = () => {
     UNSUB.forEach(u => { try { u(); } catch (e) {} }); UNSUB = [];
