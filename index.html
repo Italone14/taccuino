@@ -967,6 +967,11 @@ html:not(.dark) .keypad .k.pr{background:#d4d1ca!important}
 .xtra{color:var(--good,#1f7a4d);font-weight:600}
 button.tap,[role="button"].tap,a.tap,.tab.tap,.fab.tap,label.btn.tap{scale:.94;opacity:.65;transition:scale 0s,opacity 0s!important}
 button,[role="button"],a,.tab,.fab{transition-property:scale,opacity,transform,background-color,color,box-shadow;transition-duration:.15s;-webkit-tap-highlight-color:transparent}
+.pg-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:8px 0 0}.pg-top .pg-hero{margin:0}
+.pg-xb{background:none;border:0;padding:0;text-align:right;cursor:pointer;color:inherit;font:inherit}
+.pg-xb span{display:block;font-size:13px;font-weight:600;color:#858a82}.pg-xb b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:6px;color:#858a82}.pg-xb b.pos{color:#1f7a4d}
+html.dark body.light .pg-xb b.pos{color:#3ccf7f}
+.pg-sub{display:block;font-size:12.5px;color:#858a82;margin:4px 0 14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1090,7 +1095,7 @@ const DEFAULT_ACCOUNTS = [
 ];
 const BASE_TS = Date.UTC(2026, 9, 9, 12, 23); // saldi dello screenshot: 9 ottobre 2026, 14:23
 const DEFAULT_VAR = [
-  {k:'viaggi',name:'Viaggi e trasporti',limit:88,cats:['Viaggi','Vacanze','Trasferte','CROAZIA','Trasporti']},
+  {k:'viaggi',name:'Viaggi e trasporti',limit:90,cats:['Viaggi','Vacanze','Trasferte','CROAZIA','Trasporti']},
   {k:'veicoli',name:'Moto e auto',limit:13,cats:['Moto','Benzina','Auto','Assicurazione']},
   {k:'arturo',name:'Arturo',limit:70,cats:['Arturo']},
   {k:'ristoranti',name:'Ristoranti e bar',limit:49,cats:['Ristorante','Spesa']},
@@ -1101,7 +1106,7 @@ const DEFAULT_VAR = [
   {k:'tecnologia',name:'Tecnologia',limit:29,cats:['Tecnologia','App','Drone']},
   {k:'proteine',name:'Proteine e integratori',limit:13,cats:[],rule:'Palestra senza l\'abbonamento da 175 €'},
   {k:'svago',name:'Svago',limit:11,cats:['Divertimento','Giochi','Giochi da Tavolo','🎰','Juventus','Carte Pokemon','YT','Project']},
-  {k:'formazione',name:'Formazione',limit:20,cats:['Corsi','Libri']},
+  {k:'formazione',name:'Formazione',limit:18,cats:['Corsi','Libri']},
   {k:'universita',name:'Università',limit:62,cats:['Università'],rule:'Tasse ed esami, fino a giugno 2027'},
   {k:'abb_extra',name:'Abbonamenti extra',limit:5,cats:[],rule:'Abbonamenti non mensili'},
   {k:'imprevisti',name:'Imprevisti e varie',limit:13.44,cats:['Vario','Pagamenti','Contanti','P2P','Bonus','Vendite']},
@@ -1129,7 +1134,7 @@ try { const sd = parseInt(localStorage.getItem('tac-startDay'), 10); if (sd >= 1
 const ACC_REN = { 'Amex Italo': 'Italo', 'Amex Old': 'AMEX' }; const renAcc = e => { if (e && ACC_REN[e.a]) e.a = ACC_REN[e.a]; if (e && ACC_REN[e.to]) e.to = ACC_REN[e.to]; return e; };
 let db = null, HIST = {}, NEWS = [], CONF = {}, ready = { h: false, n: false, c: false };
 let txFilter = { q: '', cat: null, type: null }, searchOpen = false, trendCat = 'ristoranti';
-const VAR_REV = 6;
+const VAR_REV = 7;
 const VAR = () => DEFAULT_VAR.map(v => { const o = (CONF.varRev === VAR_REV ? CONF.var || [] : []).find(x => x.k === v.k); return { ...v, limit: o && typeof o.limit === 'number' ? o.limit : v.limit }; }), FIX = () => DEFAULT_FIX;
 const eur = v => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const eur0 = v => (Math.round(v) < 0 ? '-' : '') + String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
@@ -1247,6 +1252,8 @@ function budgetState(key) {
   const isNow = today >= rr.from && today <= rr.to, day = isNow ? Math.round((D(today) - t0) / 864e5) + 1 : dIn;
   return { spentV, spentF, base, extra, extraTx, limit, spent, left: limit - spent, dIn, day, isNow, daysLeft: dIn - day + 1 };
 }
+// quota del budget extra che va a una voce: in proporzione al suo limite
+const extraShare = (B, v) => B.base > 0 ? B.extra * v.limit / B.base : 0;
 // entrate che NON diventano budget extra: lo stipendio (già nel budget) e gli investimenti
 const EXTRA_NO = new Set(['Stipendio', 'Investimenti', 'Trasferimento']);
 function openExtra() {
@@ -1619,9 +1626,9 @@ function openVoceMonth(k) {
   const v = VAR().find(x => x.k === k); if (!v) return;
   const key = curKey(), [yy, mm] = key.split('-').map(Number);
   const xs = monthTx(key).filter(e => { const b = budgetKey(e); return b && b[0] === 'v' && b[1] === k; }).sort((a, b) => (b.d || '').localeCompare(a.d || '') || (b.created || 0) - (a.created || 0));
-  const tot = sumBy(xs, e => e.v), left = v.limit - tot;
+  const tot = sumBy(xs, e => e.v), sh = extraShare(budgetState(key), v), left = v.limit + sh - tot;
   const dd = d => { const x = D(d); return `${x.getDate()} ${ML[x.getMonth()].slice(0, 3)}`; };
-  $('sheet').innerHTML = `<div class="grab"></div><div class="vd-h">${icon(v.cats[0] || 'Vario')}<div><h2>${esc(v.name)}</h2><small>${ML[mm - 1]} ${yy} · ${eur(tot)} su ${eur(v.limit)} · ${left < 0 ? 'sforato ' + eur(-left) : 'restano ' + eur(left)}</small></div></div>
+  $('sheet').innerHTML = `<div class="grab"></div><div class="vd-h">${icon(v.cats[0] || 'Vario')}<div><h2>${esc(v.name)}</h2><small>${ML[mm - 1]} ${yy} · ${eur(tot)} su ${eur(v.limit)}${sh > .005 ? ` (+${eur(sh)} extra)` : ''} · ${left < 0 ? 'sforato ' + eur(-left) : 'restano ' + eur(left)}</small></div></div>
     <div class="vm-list">${xs.length ? xs.map(e => `<button type="button" class="vm-row" data-vtx="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">${icon(e.c, true)}<span class="vm-t"><b>${esc(e.n || e.c)}</b><small>${esc(e.n ? e.c + ' · ' : '')}${dd(e.d)}${e.a ? ' · ' + esc(e.a) : ''}</small></span><span class="vm-v">${eur(e.v)}</span></button>`).join('') : `<p class="status" style="margin:18px 0">Nessuna spesa in questa voce a ${ML[mm - 1]}.</p>`}</div>
     <div class="actions"><button type="button" class="btn sec" id="vmClose">Chiudi</button><button type="button" class="btn pri" id="vmMore">Mese per mese</button></div>`;
   $('sheet').hidden = $('sbg').hidden = false; $('sheet').onsubmit = null;
@@ -1667,10 +1674,10 @@ function viewInsight() {
   // budget
   let pB = `<section class="r-card"><div class="r-head"><h2>Budget</h2><span>quanto ti resta per voce</span></div>
     ${!(key < PIGGY_START()) && key > PIGGY_START() ? `<p class="r-note" style="margin:0 0 6px">Qui vedi solo il budget di questo mese. Quanto hai davvero a disposizione, contando anche quello che hai messo da parte, è nel <button type="button" class="r-anchor" data-itab="salv">Salvadanaio</button>.</p>` : ''}
-    <div class="pg-hero"><span>${B.isNow ? 'Puoi ancora spendere' : 'Ti è rimasto'}</span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? '−' : ''}${eur(Math.abs(B.left))}</b>
-      <small>${eur0(B.spent)} su ${eur0(B.limit)} di spese variabili${B.extra > .005 ? `, di cui ${eur0(B.extra)} extra` : ''}${B.isNow && B.left > 0 ? ` · ${eur(B.left / B.daysLeft)} al giorno` : ''}</small></div>
-    <div class="pg-row xrow-b" role="button" tabindex="0" id="extraRow">${icon('Bonus', true)}<span class="bbn">Budget extra<small>entrate oltre lo stipendio</small></span><b class="${B.extra > .005 ? 'pos' : ''}">${B.extra > .005 ? '+' : ''}${eur(B.extra)}</b></div>
-    <div class="bb-list">${VAR().map(v => ({ v, s2: B.spentV[v.k] || 0 })).map(x => ({ ...x, l: x.v.limit - x.s2 })).sort((a, b) => b.l - a.l).map(({ v, s2, l }) => { const c0 = v.cats[0] || 'Vario';
+    <div class="pg-top"><div class="pg-hero"><span>${B.isNow ? 'Puoi ancora spendere' : 'Ti è rimasto'}</span><b class="${B.left < 0 ? 'neg' : ''}">${B.left < 0 ? '−' : ''}${eur(Math.abs(B.left))}</b></div>
+      <button type="button" class="pg-xb" id="extraRow"><span>Budget extra</span><b class="${B.extra > .005 ? 'pos' : ''}">${B.extra > .005 ? '+' : ''}${eur(B.extra)}</b></button></div>
+    <small class="pg-sub">${eur0(B.spent)} su ${eur0(B.limit)} di spese variabili${B.isNow && B.left > 0 ? ` · ${eur(B.left / B.daysLeft)} al giorno` : ''}</small>
+    <div class="bb-list">${VAR().map(v => ({ v, s2: B.spentV[v.k] || 0 })).map(x => ({ ...x, l: x.v.limit + extraShare(B, x.v) - x.s2 })).sort((a, b) => b.l - a.l).map(({ v, s2, l }) => { const c0 = v.cats[0] || 'Vario';
       return `<div class="pg-row" role="button" tabindex="0" data-bv="${v.k}">${icon(c0, true)}<span class="bbn">${esc(v.name)}<small>${eur0(s2)} su ${eur0(v.limit)}</small></span><b class="${l < 0 ? 'neg' : ''}">${l < 0 ? '−' : ''}${eur(Math.abs(l))}</b></div>`; }).join('')}</div>
     <div class="r-sub">Spese fisse</div>
     <table class="r-tbl"><tbody>${FIX().map(f => { const s2 = B.spentF[f.k] || 0, done = s2 >= f.amount - .01; return `<tr><td>${esc(f.name)} <small>${esc(f.note || '')}</small></td><td>${eur(s2)} <span class="r-dim2">di ${eur(f.amount)}</span><br>${done ? '<span class="r-ok">pagato</span>' : s2 > 0 ? '<span class="r-part">in parte</span>' : '<span class="r-no">da pagare</span>'}</td></tr>`; }).join('')}</tbody></table>
@@ -2256,7 +2263,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-26.4';
+const APP_VER = '2026-10-26.5';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
