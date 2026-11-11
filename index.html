@@ -973,6 +973,13 @@ button,[role="button"],a{-webkit-tap-highlight-color:transparent}
 .pg-xb span{display:block;font-size:13px;font-weight:600;color:#858a82}.pg-xb b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:6px;color:#858a82}.pg-xb b.pos{color:#1f7a4d}
 html.dark body.light .pg-xb b.pos{color:#3ccf7f}
 .pg-sub{display:block;font-size:12.5px;color:#858a82;margin:4px 0 14px}
+.xbadge{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;color:#b7791f;background:color-mix(in srgb,#e8a33d 18%,transparent);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.xtog{position:relative;cursor:pointer}.xtog>span:first-child small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+.xtog input{position:absolute;opacity:0;pointer-events:none}
+.xtog .sw-t{margin-left:auto;width:46px;height:28px;border-radius:14px;background:var(--dash);position:relative;flex:none;transition:background .2s}
+.xtog .sw-t::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.xtog input:checked+.sw-t{background:#e8a33d}.xtog input:checked+.sw-t::after{transform:translateX(18px)}
+.xnote{font-size:12.5px;color:#b7791f;margin:10px 0 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -1190,7 +1197,8 @@ function allTx() {
 let _cache = null; const TX = () => _cache || (_cache = allTx());
 const monthTx = key => { const [y, m] = key.split('-').map(Number), r = monthRange(y, m - 1, P.startDay || 1); return TX().filter(e => inRange(e, r)); };
 const periodTx = () => { const r = rangeOf(); return TX().filter(e => inRange(e, r) && accOk(e)); };
-const isSpend = e => e.t === 's' && e.c !== 'Investimenti';
+// le spese straordinarie (e.x) restano nei saldi ma non contano in budget, salvadanaio e statistiche
+const isSpend = e => e.t === 's' && e.c !== 'Investimenti' && !e.x;
 const sumBy = (xs, f) => xs.reduce((a, e) => a + f(e), 0);
 // a quale voce di budget va un movimento (categorie originali di Fleur + regole per le categorie miste)
 const FIXED_SUB = /\btim\b|telefono|chat ?gpt|claude|icloud|partite/i, ANNUAL_SUB = /strava|total ?av|day ?one|sleep|cap ?cut|yazio|fantacalcio|aruba|love ?pdf/i;
@@ -1368,7 +1376,7 @@ function viewTx() {
     const sign = e.t === 's' ? '-' : e.t === 'e' ? '+' : '';
     const sub = e.t === 't' ? `${esc(e.a)} → ${esc(e.to)}` : esc(e.a);
     const accH = e.t === 't' ? `${accIcon(e.a, true)}<span>${esc(e.a)}</span><span class="fl-arr">→</span>${accIcon(e.to, true)}<span>${esc(e.to)}</span>` : `${accIcon(e.a, true)}<span>${esc(e.a)}</span>`;
-    h += `<div class="sw">${V2() ? `<span class="sw-act"><button type="button" class="sw-ed" data-ed="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">Modifica</button><button type="button" class="sw-del" data-del="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">Elimina</button></span>` : ''}<button class="tx fl" data-id="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">${icon(e.c)}<span class="fl-l"><span class="nm">${esc(e.c)}</span>${e.n ? `<span class="fl-n">${esc(e.n)}</span>` : ''}</span><span class="fl-r"><span class="amt ${e.t === 'e' ? 'in' : ''}">${sign}${eur(e.v)}</span><span class="fl-acc">${accH}</span></span></button></div>`;
+    h += `<div class="sw">${V2() ? `<span class="sw-act"><button type="button" class="sw-ed" data-ed="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">Modifica</button><button type="button" class="sw-del" data-del="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">Elimina</button></span>` : ''}<button class="tx fl" data-id="${esc(e.src === 'h' ? e.hm + '|' + e.i : e.id)}">${icon(e.c)}<span class="fl-l"><span class="nm">${esc(e.c)}${e.x ? ' <i class="xbadge">straordinaria</i>' : ''}</span>${e.n ? `<span class="fl-n">${esc(e.n)}</span>` : ''}</span><span class="fl-r"><span class="amt ${e.t === 'e' ? 'in' : ''}">${sign}${eur(e.v)}</span><span class="fl-acc">${accH}</span></span></button></div>`;
   });
   if (lastDay) h += '</div>';
   if (xs.length > 400) h += `<div class="status">Mostro le prime 400 di ${xs.length}: affina la ricerca.</div>`;
@@ -1589,7 +1597,7 @@ let balDays = 90;
 function balSeries(days) {
   const total = sumBy(balances(), a => a.v), today = new Date(), keys = [];
   for (let k = days - 1; k >= 0; k--) keys.push(iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - k)));
-  const net = {}; TX().forEach(e => { if (e.d < keys[0]) return; const d = e.t === 'e' ? (e.c === 'Investimenti' ? 0 : e.v) : isSpend(e) ? -e.v : 0; if (d) net[e.d] = (net[e.d] || 0) + d; });
+  const net = {}; TX().forEach(e => { if (e.d < keys[0]) return; const d = e.t === 'e' ? (e.c === 'Investimenti' ? 0 : e.v) : (e.t === 's' && e.c !== 'Investimenti') ? -e.v : 0; if (d) net[e.d] = (net[e.d] || 0) + d; });
   const vals = []; let run = total; for (let i = keys.length - 1; i >= 0; i--) { vals[i] = run; run -= net[keys[i]] || 0; }
   return { keys, vals };
 }
@@ -1749,7 +1757,9 @@ function viewInsight() {
     ${bM.map(r => `<tr><td>${ML[r.m][0].toUpperCase() + ML[r.m].slice(1)}</td><td>${r.st ? eur0(r.st) : '<small>—</small>'}</td><td>${eur0(r.dov)}</td><td>${eur0(r.dato)}</td><td>${r.st || r.dato ? dTxt(r.diff) : '<small>—</small>'}</td></tr>`).join('')}</tbody></table>
     <p class="r-note">Come il foglio "Beneficenza" su Drive: per ogni anno il 10% dello stipendio (categoria Stipendio) confrontato con quanto hai dato (categoria Beneficenza). La differenza si accumula: se un mese dai di meno, recuperi nei mesi dopo. Lo stipendio del mese in corso entra solo quando arriva.</p></section>`;
   const pT = `<div class="r-sub-tabs">${[['risparmio', 'Risparmio'], ['saldo', 'Saldo'], ['abbonamenti', 'Abbonamenti'], ['andamento', 'Andamento'], ['confronto', 'Confronto'], ['beneficenza', 'Beneficenza']].map(([k, l]) => `<button type="button" data-stab="${k}" aria-pressed="${sTab === k}">${l}</button>`).join('')}</div>` + (sTab === 'confronto' ? pC : sTab === 'risparmio' ? pR : sTab === 'saldo' ? viewBal() : sTab === 'beneficenza' ? pBen : sTab === 'abbonamenti' ? viewSubs() : pA);
-  return h + (iTab === 'budget' ? pB : iTab === 'salv' ? pS : pT) + '</div>';
+  const xOut = sumBy(xs.filter(e => e.t === 's' && e.x), e => e.v);
+  const xNote = xOut > .005 ? `<p class="xnote">Esclusi ${eur(xOut)} di spese straordinarie a ${mName}.</p>` : '';
+  return h + xNote + (iTab === 'budget' ? pB : iTab === 'salv' ? pS : pT) + '</div>';
 }
 
 /* ---------- stile: nuovo (prova) o precedente ---------- */
@@ -1938,6 +1948,7 @@ function drawTxe() {
     <div class="xai"><span>✨</span><input id="xAi" type="text" enterkeyhint="go" autocomplete="off" placeholder="Scrivi o detta: 2,50 Trade Republic pranzo" value="${esc(S.ai || '')}"><button type="button" id="xMic" class="xmic" aria-label="Detta la spesa"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><button type="button" id="xAiGo">Compila</button></div>
     <div class="bigamt num" id="xAmt">${fmtAmt(S.cents)}</div>
     <div class="xrows">${rows}${isSubTx() ? subRow() : txRow('rec', 'Ricorrente', (REC.find(r => r[0] === S.rec) || REC[0])[1])}
+      ${S.t === 's' ? `<label class="xrow xtog"><span>Spesa straordinaria<small>Non conta in budget e statistiche</small></span><input type="checkbox" id="xX" ${S.x ? 'checked' : ''}><i class="sw-t"></i></label>` : ''}
       <textarea id="xNote" enterkeyhint="done" placeholder="${isSubTx() ? 'Nome dell\'abbonamento (es. Claude, iCloud)' : 'Note'}" rows="1">${esc(S.n || '')}</textarea>
       ${S.edit ? `<button type="button" class="xdel" id="xDel">Elimina transazione</button>` : ''}
       <div class="err" id="xErr"></div></div></div>
@@ -1959,6 +1970,7 @@ function drawTxe() {
     [50, 200, 400, 700].forEach(ms => setTimeout(fit, ms)); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); n.addEventListener('blur', () => { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); t.style.top = t.style.height = t.style.bottom = ''; }, { once: true }); } };
   $('xNote').onblur = () => setTimeout(() => { const t = $('txe'); if (t) t.classList.remove('typing'); }, 80);
   $('xClose').onclick = closeTxe;
+  if ($('xX')) $('xX').onchange = () => { S.x = $('xX').checked; };
   $('xOk').onclick = saveTx;
   if ($('xDel')) $('xDel').onclick = ev => { const b = ev.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tocca di nuovo per eliminare'; return; } removeTx(S); };
 }
@@ -2005,6 +2017,7 @@ async function saveTx() {
   const doc = { d: S.d, month: S.d.slice(0, 7), t, c, a: S.a, v: Math.round(v * 100) / 100, n, created: S.created || Date.now(), source: 'app' };
   if (t === 's' && c === 'Abbonamenti' && S.sub) doc.sub = S.sub;
   if (t === 't') doc.to = S.to;
+  if (t === 's' && S.x) doc.x = true;
   if (S.rec) { doc.rec = S.rec; doc.genUntil = S.genUntil && S.d <= S.genUntil ? S.genUntil : S.d; }
   if (S.recOf) doc.recOf = S.recOf;
   if (S.src === 'h') doc.created = 0;
@@ -2264,7 +2277,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-10-26.6';
+const APP_VER = '2026-11-11.1';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
