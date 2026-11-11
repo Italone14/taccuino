@@ -974,11 +974,11 @@ button,[role="button"],a{-webkit-tap-highlight-color:transparent}
 html.dark body.light .pg-xb b.pos{color:#3ccf7f}
 .pg-sub{display:block;font-size:12.5px;color:#858a82;margin:4px 0 14px}
 .xbadge{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;color:#b7791f;background:color-mix(in srgb,#e8a33d 18%,transparent);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
-.xtog{position:relative;cursor:pointer}.xtog>span:first-child small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+.xtog{position:relative;cursor:pointer;width:100%;text-align:left;color:inherit;font:inherit}.xtog>span:first-child small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
 .xtog input{position:absolute;opacity:0;pointer-events:none}
 .xtog .sw-t{margin-left:auto;width:46px;height:28px;border-radius:14px;background:var(--dash);position:relative;flex:none;transition:background .2s}
 .xtog .sw-t::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
-.xtog input:checked+.sw-t{background:#e8a33d}.xtog input:checked+.sw-t::after{transform:translateX(18px)}
+.xtog[aria-checked="true"] .sw-t{background:#e8a33d}.xtog[aria-checked="true"] .sw-t::after{transform:translateX(18px)}
 .xnote{font-size:12.5px;color:#b7791f;margin:10px 0 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -1948,7 +1948,7 @@ function drawTxe() {
     <div class="xai"><span>✨</span><input id="xAi" type="text" enterkeyhint="go" autocomplete="off" placeholder="Scrivi o detta: 2,50 Trade Republic pranzo" value="${esc(S.ai || '')}"><button type="button" id="xMic" class="xmic" aria-label="Detta la spesa"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><button type="button" id="xAiGo">Compila</button></div>
     <div class="bigamt num" id="xAmt">${fmtAmt(S.cents)}</div>
     <div class="xrows">${rows}${isSubTx() ? subRow() : txRow('rec', 'Ricorrente', (REC.find(r => r[0] === S.rec) || REC[0])[1])}
-      ${S.t === 's' ? `<label class="xrow xtog"><span>Spesa straordinaria<small>Non conta in budget e statistiche</small></span><input type="checkbox" id="xX" ${S.x ? 'checked' : ''}><i class="sw-t"></i></label>` : ''}
+      ${S.t === 's' ? `<button type="button" class="xrow xtog" id="xX" role="switch" aria-checked="${!!S.x}"><span>Spesa straordinaria<small>Non conta in budget e statistiche</small></span><i class="sw-t"></i></button>` : ''}
       <textarea id="xNote" enterkeyhint="done" placeholder="${isSubTx() ? 'Nome dell\'abbonamento (es. Claude, iCloud)' : 'Note'}" rows="1">${esc(S.n || '')}</textarea>
       ${S.edit ? `<button type="button" class="xdel" id="xDel">Elimina transazione</button>` : ''}
       <div class="err" id="xErr"></div></div></div>
@@ -1956,7 +1956,7 @@ function drawTxe() {
   el.querySelectorAll('[data-sub]').forEach(b => b.onclick = ev => { ev.stopPropagation(); S.n = $('xNote').value; S.sub = b.dataset.sub; S.rec = S.sub === 'm' ? 'month' : ''; drawTxe(); });
   el.querySelectorAll('.ty').forEach(b => b.onclick = () => { S.n = $('xNote').value; if (S.t !== b.dataset.t) { S.t = b.dataset.t; S.c = null; subDefault(); if (S.t === 't' && !S.to) S.to = accUsage().find(x => x !== S.a); } drawTxe(); });
   el.querySelectorAll('.k').forEach(b => { b.addEventListener('pointerdown', ev => { ev.preventDefault(); keyIn(b.dataset.k); b.classList.add('pr'); clearTimeout(b._pr); b._pr = setTimeout(() => b.classList.remove('pr'), 120); }); b.onclick = ev => { if (ev.detail === 0) keyIn(b.dataset.k); }; });
-  el.querySelectorAll('.xrow').forEach(b => b.onclick = ev => { if (ev.target.id === 'xDate') return; const k = b.dataset.row; S.n = $('xNote').value; if (k === 'date') { const d = $('xDate'); try { d.showPicker(); } catch (e) { d.focus(); d.click(); } return; } S.pick = k; drawTxe(); });
+  el.querySelectorAll('.xrow:not(.xtog)').forEach(b => b.onclick = ev => { if (ev.target.id === 'xDate') return; const k = b.dataset.row; S.n = $('xNote').value; if (k === 'date') { const d = $('xDate'); try { d.showPicker(); } catch (e) { d.focus(); d.click(); } return; } S.pick = k; drawTxe(); });
   $('xDate').onchange = () => { if ($('xDate').value) { S.d = $('xDate').value; S.n = $('xNote').value; drawTxe(); } };
   $('xNote').oninput = () => { S.n = $('xNote').value; };
   $('xAi').oninput = () => { S.ai = $('xAi').value; };
@@ -1970,7 +1970,7 @@ function drawTxe() {
     [50, 200, 400, 700].forEach(ms => setTimeout(fit, ms)); if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); n.addEventListener('blur', () => { visualViewport.removeEventListener('resize', fit); visualViewport.removeEventListener('scroll', fit); t.style.top = t.style.height = t.style.bottom = ''; }, { once: true }); } };
   $('xNote').onblur = () => setTimeout(() => { const t = $('txe'); if (t) t.classList.remove('typing'); }, 80);
   $('xClose').onclick = closeTxe;
-  if ($('xX')) $('xX').onchange = () => { S.x = $('xX').checked; };
+  if ($('xX')) $('xX').onclick = () => { S.x = !S.x; $('xX').setAttribute('aria-checked', String(S.x)); };
   $('xOk').onclick = saveTx;
   if ($('xDel')) $('xDel').onclick = ev => { const b = ev.currentTarget; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tocca di nuovo per eliminare'; return; } removeTx(S); };
 }
@@ -2277,7 +2277,7 @@ $('searchBtn').onclick = () => { searchOpen = !searchOpen; if (!searchOpen) txFi
 $('fab').onclick = () => { if (!db) return toast('Accedi per salvare'); openSheet(null); };
 
 /* ================= aggiornamento automatico ================= */
-const APP_VER = '2026-11-11.1';
+const APP_VER = '2026-11-11.2';
 async function checkUpdate() {
   if (window.claude || location.protocol === 'file:') return;
   try { const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }); const t = await r.text(); const m = t.match(/const APP_VER = '([^']+)'/);
